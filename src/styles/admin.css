@@ -1,0 +1,84 @@
+/* EPUB import workflow */
+.admin-container { width: min(880px, calc(100% - 40px)); margin: 0 auto; padding: 28px 0 64px; }
+.import-page { display: grid; gap: 18px; }
+.import-back-link { justify-self: start; padding: 6px 0; border: 0; background: none; color: var(--text-secondary); font: inherit; font-size: .85rem; cursor: pointer; }
+.import-back-link:hover { color: var(--text-primary); }
+.import-page-header { margin: 2px 0 4px; }
+.eyebrow { margin: 0 0 6px; color: var(--accent); font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.import-page-header h1 { margin: 0; color: var(--text-primary); font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -.045em; }
+.admin-description { margin: 8px 0 0; color: var(--text-secondary); font-size: .92rem; }
+.import-panel { padding: 18px; border: 1px solid var(--border-primary); border-radius: 15px; background: var(--bg-secondary); box-shadow: var(--shadow-sm); }
+.import-section-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.import-section-heading h2 { margin: 0; color: var(--text-primary); font-size: .95rem; font-weight: 650; }
+.step-number { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 9px; background: var(--accent-muted); color: var(--accent); font-size: .72rem; font-weight: 700; }
+.import-dropzone { display: grid; justify-items: center; gap: 8px; min-height: 204px; padding: 24px; border: 1.5px dashed var(--border-secondary); border-radius: 12px; background: color-mix(in srgb, var(--bg-primary) 42%, transparent); text-align: center; transition: border-color 160ms ease, background 160ms ease; }
+.import-dropzone:hover, .import-dropzone.dragover { border-color: var(--accent); background: var(--accent-muted); }
+.import-dropzone h3, .cover-picker-card h3 { margin: 2px 0 0; color: var(--text-primary); font-size: .94rem; }
+.import-dropzone p, .cover-picker-card p:not(.eyebrow) { margin: 0; color: var(--text-secondary); font-size: .8rem; line-height: 1.5; }
+.selected-filename { display: block; max-width: 100%; overflow: hidden; color: var(--text-tertiary); font-size: .74rem; text-overflow: ellipsis; white-space: nowrap; }
+.import-picker, .cover-clear-btn { min-height: 34px; padding: 7px 12px; border: 1px solid var(--border-primary); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary); font: inherit; font-size: .76rem; font-weight: 600; cursor: pointer; }
+.import-picker:hover, .cover-clear-btn:hover { border-color: var(--accent); }
+.import-page input[type="file"] { display: none; }
+.cover-picker-card { display: grid; grid-template-columns: minmax(0, 1fr) 138px; align-items: center; gap: 24px; min-height: 190px; }
+.cover-picker-copy { display: grid; justify-items: start; gap: 8px; min-width: 0; }
+.cover-picker-copy .eyebrow { margin-bottom: -4px; }
+.cover-picker-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.cover-preview, .cover-preview-empty { display: grid; width: 138px; aspect-ratio: 2 / 2.85; place-items: center; overflow: hidden; border: 1px solid var(--border-primary); border-radius: 9px; background: var(--bg-primary); color: var(--text-tertiary); font-size: .72rem; }
+.cover-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.import-status { min-height: 1.2em; margin: 0; color: var(--text-secondary); font-size: .82rem; }
+.import-status:empty { display: none; }
+.import-status.error { color: #f28d8d; }
+.import-status.success { color: #83cba0; }
+.import-review-card, .import-success-card { padding: 18px; border: 1px solid var(--border-primary); border-radius: 14px; background: var(--bg-secondary); }
+.import-review-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.import-review-heading h3, .import-success-card h3 { margin: 0; color: var(--text-primary); font-size: 1.15rem; }
+.import-author { margin: 5px 0 0; color: var(--text-secondary); font-size: .83rem; }
+.import-count-badge { flex: 0 0 auto; padding: 6px 9px; border: 1px solid var(--border-primary); border-radius: 999px; background: var(--bg-tertiary); color: var(--text-secondary); font-size: .72rem; }
+.import-metadata { display: flex; flex-wrap: wrap; gap: 18px 32px; margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--border-primary); }
+.import-metadata div { display: grid; gap: 4px; }
+.import-metadata dt { color: var(--text-tertiary); font-size: .7rem; }
+.import-metadata dd { margin: 0; color: var(--text-primary); font-size: .82rem; }
+.import-local-note { margin: 14px 0 0; color: var(--text-tertiary); font-size: .74rem; }
+.import-submit { justify-self: start; min-width: 156px; }
+.import-submit:disabled { opacity: .48; cursor: not-allowed; }
+.import-success-card { display: grid; justify-items: start; gap: 8px; }
+.import-success-card > p:not(.eyebrow) { margin: 0; color: var(--text-secondary); font-size: .83rem; }
+.import-success-mark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: color-mix(in srgb, #52b788 18%, transparent); color: #83cba0; font-size: 1rem; }
+.import-success-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.device-library-panel { display: grid; gap: 12px; margin-top: 18px; }
+.device-library-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.device-library-header .eyebrow { margin-bottom: 4px; }
+.device-library-header h2 { margin: 0; color: var(--text-primary); font-size: 1.12rem; letter-spacing: -.02em; }
+.device-library-badge { flex: 0 0 auto; padding: 6px 10px; border: 1px solid var(--border-primary); border-radius: 999px; background: var(--bg-tertiary); color: var(--text-secondary); font-size: .7rem; font-weight: 650; }
+.device-library-description, .device-storage-status, .device-storage-estimate, .device-storage-caveat, .backup-status, .backup-preview p { margin: 0; color: var(--text-secondary); font-size: .8rem; line-height: 1.55; }
+.device-storage-status { padding: 12px 14px; border: 1px solid var(--border-primary); border-radius: 10px; background: color-mix(in srgb, var(--bg-primary) 42%, transparent); color: var(--text-primary); }
+.device-storage-estimate { color: var(--text-secondary); }
+.device-storage-caveat { padding-top: 10px; border-top: 1px solid var(--border-primary); color: var(--text-tertiary); font-size: .75rem; }
+.backup-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 2px; }
+.backup-actions .btn { min-height: 38px; padding: 8px 13px; font: inherit; font-size: .78rem; font-weight: 650; cursor: pointer; }
+.backup-actions .btn:disabled { opacity: .5; cursor: not-allowed; }
+.backup-actions .btn:focus-visible, .import-page button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.import-page .backup-file-input { display: none; }
+.backup-preview { display: grid; gap: 8px; padding: 13px 14px; border: 1px solid var(--border-primary); border-radius: 10px; background: var(--bg-primary); }
+.backup-preview:empty { display: none; }
+.backup-preview-summary { color: var(--text-primary) !important; font-weight: 600; overflow-wrap: anywhere; }
+.backup-conflicts-heading { color: var(--text-secondary); }
+.backup-conflict-list { display: flex; flex-wrap: wrap; gap: 6px; max-height: 150px; overflow: auto; margin: 0; padding: 0; list-style: none; }
+.backup-conflict-list li { max-width: 100%; padding: 4px 7px; overflow-wrap: anywhere; border: 1px solid var(--border-primary); border-radius: 6px; background: var(--bg-tertiary); color: var(--text-secondary); font-family: var(--font-mono, monospace); font-size: .7rem; }
+.backup-restore-note { color: var(--text-tertiary) !important; }
+.backup-status { min-height: 1.2em; }
+.backup-status:empty { display: none; }
+.backup-status.error { color: #f28d8d; }
+.backup-status.success { color: #83cba0; }
+@media (max-width: 580px) {
+  .admin-container { width: calc(100% - 28px); padding: 20px 0 40px; }
+  .import-panel { padding: 14px; }
+  .import-dropzone { min-height: 184px; padding: 18px 12px; }
+  .cover-picker-card { grid-template-columns: minmax(0,1fr) 98px; gap: 14px; }
+  .cover-preview, .cover-preview-empty { width: 98px; }
+  .import-metadata { gap: 12px 20px; }
+  .device-library-header { align-items: flex-start; }
+  .device-library-badge { margin-top: 2px; }
+  .backup-actions { display: grid; grid-template-columns: 1fr; }
+  .backup-actions .btn { width: 100%; }
+}

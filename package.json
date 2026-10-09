@@ -1,0 +1,27 @@
+{
+  "name": "yomi-reader",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && node tools/inject-sw-build-id.mjs",
+    "preview": "vite preview",
+    "publisher:build": "vite build --config tools/publisher/vite.config.ts",
+    "publisher:start": "node tools/publisher/server.mjs",
+    "publisher:dev": "vite --config tools/publisher/vite.config.ts",
+    "publisher:api": "node tools/publisher/server.mjs",
+    "pages:deploy:preview": "wrangler pages deploy dist --project-name yomi-reader --branch preview",
+    "pages:deploy:production": "wrangler pages deploy dist --project-name yomi-reader"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0",
+    "wrangler": "4.148.0"
+  },
+  "dependencies": {
+    "jszip": "^3.10.2",
+    "marked": "^18.1.0",
+    "sanitize-html": "^2.18.0"
+  }
+}

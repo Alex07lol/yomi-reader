@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#171c26" />
+    <title>You're offline — Yomi Reader</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif; background: #171c26; color: #f1f3fa; }
+      * { box-sizing: border-box; }
+      body { display: grid; min-height: 100vh; margin: 0; padding: 24px; place-items: center; }
+      main { width: min(100%, 440px); padding: 32px; border: 1px solid #354256; border-radius: 18px; background: #202938; text-align: center; box-shadow: 0 20px 56px #0004; }
+      .mark { display: grid; width: 52px; height: 52px; margin: 0 auto 20px; place-items: center; border: 1px solid #465671; border-radius: 16px; color: #bbc9ef; font-size: 24px; font-weight: 700; }
+      h1 { margin: 0 0 10px; font-size: 1.55rem; }
+      p { margin: 0; color: #b0bbce; line-height: 1.65; }
+      a { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; margin-top: 24px; padding: 0 18px; border-radius: 11px; background: #a1b4e3; color: #171c26; font-weight: 700; text-decoration: none; }
+      a:focus-visible { outline: 3px solid #f1f3fa; outline-offset: 3px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark" aria-hidden="true">Y</div>
+      <h1>You're offline</h1>
+      <p>Yomi couldn't reach this page. Reconnect to the internet and try again. Books saved for offline reading will be available from your library.</p>
+      <a href="/#library">Back to Yomi</a>
+    </main>
+  </body>
+</html>
