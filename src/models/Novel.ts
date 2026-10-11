@@ -90,7 +90,7 @@ export type ReaderLoadingStrategy = 'balanced' | 'lightweight' | 'preload';
 
 /* ─── Reading shelves ─── */
 
-export type ShelfId = 'want' | 'reading' | 'finished';
+export type ShelfId = 'want' | 'reading' | 'finished' | 'dropped';
 
 /** A novel's placement on one shelf. `updatedAt` drives last-write-wins sync. */
 export interface ReadingShelf {

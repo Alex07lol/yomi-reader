@@ -51,6 +51,10 @@ export const appearanceIcon = (className = 'app-icon', size = 20): SVGSVGElement
 export const checkIcon = (className = 'app-icon', size = 18): SVGSVGElement =>
   icon(className, ['M20 6L9 17l-5-5'], size);
 
+/** New chapters: a refresh-style arrow. */
+export const updatesIcon = (className = 'app-icon', size = 20): SVGSVGElement =>
+  icon(className, ['M21 12a9 9 0 1 1-2.6-6.4', 'M21 4v5h-5'], size);
+
 export const bellIcon = (className = 'app-icon', size = 20): SVGSVGElement =>
   icon(className, [
     'M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9',

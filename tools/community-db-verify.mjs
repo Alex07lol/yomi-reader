@@ -133,6 +133,7 @@ await exec(migration('20261009000300_community_ratings_profiles.sql'));
 await exec(migration('20261009000400_comment_revisions.sql'));
 await exec(migration('20261009000500_reading_shelves.sql'));
 await exec(migration('20261009000600_community_notifications.sql'));
+await exec(migration('20261011000100_reading_shelves_dropped.sql'));
 
 console.log('Seeding users through the auth trigger…');
 await exec(`
@@ -548,6 +549,9 @@ await asRole('authenticated', USER_A, async () => {
   await exec(`insert into public.reading_shelves (user_id, novel_id, shelf) values ('${USER_A}', 'novel-1', 'want')`);
   await exec(`update public.reading_shelves set shelf='finished' where user_id='${USER_A}' and novel_id='novel-1'`);
   check(await scalar(`select shelf from public.reading_shelves where user_id='${USER_A}' and novel_id='novel-1'`) === 'finished', 'the owner can move a novel between shelves');
+  await exec(`insert into public.reading_shelves (user_id, novel_id, shelf) values ('${USER_A}', 'novel-4', 'dropped')`);
+  check(await scalar(`select shelf from public.reading_shelves where user_id='${USER_A}' and novel_id='novel-4'`) === 'dropped', 'the dropped shelf is accepted');
+  await exec(`delete from public.reading_shelves where user_id='${USER_A}' and novel_id='novel-4'`);
   await expectError(
     `insert into public.reading_shelves (user_id, novel_id, shelf) values ('${USER_A}', 'novel-9', 'later')`,
     'only the known shelves are allowed',

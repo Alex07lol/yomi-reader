@@ -56,7 +56,7 @@ function notificationText(notification: CommunityNotification): string {
   return `${actor} ${NOTIFICATION_LABELS[notification.kind]}`;
 }
 
-async function openPanel(anchor: HTMLElement): Promise<void> {
+async function openPanel(container: HTMLElement, button: HTMLButtonElement): Promise<void> {
   closePanel();
   const panel = el('div', { className: 'community-notification-panel', role: 'dialog', 'aria-label': 'Notifications' });
   const list = el('div', { className: 'community-notification-list' });
@@ -71,7 +71,7 @@ async function openPanel(anchor: HTMLElement): Promise<void> {
       markAll.disabled = true;
       try {
         await markAllNotificationsRead();
-        await refreshUnread(anchor);
+        await refreshUnread(button);
         for (const item of panel.querySelectorAll<HTMLElement>('.community-notification-unread')) {
           item.classList.remove('community-notification-unread');
         }
@@ -90,7 +90,9 @@ async function openPanel(anchor: HTMLElement): Promise<void> {
   ));
   panel.appendChild(list);
   panel.appendChild(status);
-  anchor.appendChild(panel);
+  /* A sibling of the button, not a child: otherwise a click on a notification row
+     bubbles through the button's handler and reopens the panel as it navigates. */
+  container.appendChild(panel);
   panelOpen = panel;
 
   const renderPage = (page: { notifications: CommunityNotification[]; hasMore: boolean; nextOffset: number }): void => {
@@ -98,7 +100,7 @@ async function openPanel(anchor: HTMLElement): Promise<void> {
     if (offset === 0 && page.notifications.length === 0) {
       list.appendChild(el('p', { className: 'community-notification-empty', text: 'Nothing new yet.' }));
     }
-    for (const notification of page.notifications) list.appendChild(renderItem(notification, anchor));
+    for (const notification of page.notifications) list.appendChild(renderItem(notification, button));
     if (page.hasMore) {
       const more = el('button', {
         className: 'community-button community-button-ghost community-notification-more',
@@ -187,11 +189,11 @@ async function paint(container: HTMLElement): Promise<void> {
   ) as HTMLButtonElement;
   button.addEventListener('click', (event) => {
     event.stopPropagation();
-    if (panelOpen?.parentElement === button) {
+    if (panelOpen?.parentElement === container) {
       closePanel();
       return;
     }
-    void openPanel(button);
+    void openPanel(container, button);
   });
   container.appendChild(button);
   void refreshUnread(container);

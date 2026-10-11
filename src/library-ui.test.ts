@@ -15,6 +15,9 @@ import navbarSource from './components/Navbar.ts?raw';
 import topMenuSource from './components/TopMenu.ts?raw';
 import iconsSource from './components/icons.ts?raw';
 import bellSource from './components/NotificationBell.ts?raw';
+import shelfPickerSource from './components/ShelfPicker.ts?raw';
+import shelfUpdatesSource from './components/ShelfUpdates.ts?raw';
+import shelvesLibSource from './lib/shelf-updates.ts?raw';
 import routerSource from './utils/router.ts?raw';
 
 /** The text of a single `selector { … }` rule, so assertions stay scoped to it.
@@ -111,6 +114,34 @@ describe('bookmarks entry point', () => {
   });
 });
 
+describe('shelves and updates', () => {
+  it('offers the shelf choice as a dropdown rather than a row of buttons', () => {
+    expect(shelfPickerSource).toContain('renderSelectMenu(');
+    expect(shelfPickerSource).toContain("label: 'Not on a shelf'");
+    expect(shelfPickerSource).not.toContain('shelf-picker-button');
+    expect(communityCss).not.toContain('.shelf-picker-button');
+  });
+
+  it('records how many chapters the reader has seen when a shelf is set or a book opened', () => {
+    expect(shelfPickerSource).toContain('setShelfUpdateBaseline(');
+    expect(libraryPageSource).toBeTruthy();
+    expect(shelvesLibSource).toContain('export function computeShelfUpdates');
+  });
+
+  it('mounts a book-updates icon in the navbar, next to the menu', () => {
+    expect(navbarSource).toContain('navbar-updates-container');
+    expect(navbarSource).toContain("renderShelfUpdates(nav.querySelector('.navbar-updates-container')!)");
+    expect(shelfUpdatesSource).toContain('shelf-updates-badge');
+    // It stays out of the way until the reader has shelves at all.
+    expect(shelfUpdatesSource).toMatch(/if \(shelves\.length === 0\) return/);
+  });
+
+  it('reports updates only for shelved novels with a baseline to compare against', () => {
+    expect(shelvesLibSource).toContain('if (typeof seen !== \'number\'');
+    expect(shelvesLibSource).toContain('baselinesToEstablish');
+  });
+});
+
 describe('monochrome chrome', () => {
   it('draws icons in SVG with currentColor instead of shipping emoji', () => {
     expect(iconsSource).toContain("createElementNS(SVG_NS, 'svg')");
@@ -124,6 +155,8 @@ describe('monochrome chrome', () => {
       TopMenu: topMenuSource,
       NotificationBell: bellSource,
       LibraryPage: libraryPageSource,
+      ShelfPicker: shelfPickerSource,
+      ShelfUpdates: shelfUpdatesSource,
       icons: iconsSource,
     })) {
       expect(PICTOGRAPHS.test(source), `${name} still contains an emoji`).toBe(false);

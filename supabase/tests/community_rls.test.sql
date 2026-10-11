@@ -103,6 +103,22 @@ select is(
 );
 
 -- ── Other user cannot edit it ──────────────────────────────────────
+select lives_ok(
+  $$ update public.reading_shelves set shelf = 'dropped' where novel_id = 'novel-1' $$,
+  'an owner can park a novel on the dropped shelf'
+);
+select lives_ok(
+  $$ update public.reading_shelves set shelf = 'want' where novel_id = 'novel-1' $$,
+  'an owner can move it back'
+);
+select throws_ok(
+  $$ insert into public.reading_shelves (user_id, novel_id, shelf)
+     values ('11111111-1111-4111-8111-111111111111', 'novel-9', 'later') $$,
+  '23514',
+  null,
+  'only the known shelves are allowed'
+);
+
 select tests_act_as('authenticated', '22222222-2222-4222-8222-222222222222');
 update public.comments set body = 'hijacked' where id = 'aaaaaaaa-0000-4000-8000-000000000001';
 select is(

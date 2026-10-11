@@ -5,6 +5,7 @@ import { router } from '../utils/router';
 import type { Novel, Chapter } from '../models';
 import { fetchNovel, fetchChapters } from '../data';
 import { getImportedNovel, getReadingProgress } from '../storage';
+import { setShelfUpdateBaseline } from '../storage/updates';
 import { isSharedNovelSaved, removeSharedNovelOffline, saveSharedNovelOffline } from '../storage/offline-books';
 import { renderNavbar, renderFooter, renderNovelHeader, renderVolumeList, renderDownloadPanel, DiscussionPanel, ShelfPicker } from '../components';
 import { offlineResourceUrls, precacheOfflineNovel, removeOfflineNovelCache } from '../lib/offline-sw';
@@ -132,8 +133,10 @@ export async function renderNovelPage(container: HTMLElement, novelId: string): 
   if (!isPersonalNovel) {
     const shelfHost = headerContainer.querySelector<HTMLElement>('.novel-header-actions');
     if (shelfHost) {
-      const picker = new ShelfPicker({ novelId: novel.id });
+      const picker = new ShelfPicker({ novelId: novel.id, chapterCount: novel.chapters.length });
       shelfHost.appendChild(picker.element);
+      // Opening the book counts as having seen everything published so far.
+      void setShelfUpdateBaseline(novel.id, novel.chapters.length).catch(() => undefined);
     }
   }
 

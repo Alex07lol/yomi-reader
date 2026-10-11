@@ -135,16 +135,21 @@ export async function parseEpub(arrayBuffer: ArrayBuffer): Promise<ParsedEpub> {
     if (!file) continue;
 
     const html = await file.async('string');
-    const { title: chTitle, content: cleanHtml } = extractChapterContent(html);
-    const textContent = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const fallbackTitle = extractChapterTitle(html);
 
-    chapters.push({
-      id: `epub-ch-${chapters.length + 1}-${slugify(chTitle)}`,
-      title: chTitle,
-      content: cleanHtml,
-      wordCount: textContent.split(/\s+/).length,
-      order: chapters.length,
-    });
+    /* Many EPUBs ship the whole book as one document (or a handful of documents
+       each holding many chapters). Splitting on chapter headings is what makes
+       those readable chapter by chapter rather than as one long block. */
+    for (const part of splitChapterParts(bodyHtmlOf(html), fallbackTitle, title)) {
+      const text = textOf(part.html);
+      chapters.push({
+        id: `epub-ch-${chapters.length + 1}-${slugify(part.title)}`,
+        title: part.title,
+        content: sanitizeChapterHtml(part.html),
+        wordCount: text.length > 0 ? text.split(/\s+/).length : 0,
+        order: chapters.length,
+      });
+    }
   }
 
   if (chapters.length === 0) {
@@ -190,29 +195,100 @@ function extractOpfMetadata(opfXml: string): Record<string, string> {
   return result;
 }
 
-/* ── Extract chapter title and sanitised content ── */
+/* ── Chapter extraction and in-document splitting ── */
 
-function extractChapterContent(html: string): { title: string; content: string } {
-  /* Try <title> tag */
-  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  const headingMatch = html.match(/<h[1-6]\b([^>]*)>([\s\S]*?)<\/h[1-6]>/i);
-  const headingTitle = headingMatch?.[1].match(/\btitle\s*=\s*(["'])(.*?)\1/i)?.[2];
-  const decodeTitle = (value: string) => value
+function bodyHtmlOf(html: string): string {
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  return bodyMatch ? bodyMatch[1] : html;
+}
+
+/** Decode entities and strip tags from a fragment of text. */
+function decodeText(value: string): string {
+  return value
     .replace(/<[^>]*>/g, ' ')
     .replace(/&#x([0-9a-f]+);/gi, (_match, hex: string) => String.fromCodePoint(Number.parseInt(hex, 16)))
     .replace(/&#(\d+);/g, (_match, decimal: string) => String.fromCodePoint(Number.parseInt(decimal, 10)))
-    .replace(/&(amp|lt|gt|quot|apos|nbsp);/gi, (_match, entity: string) => ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }[entity.toLowerCase()] ?? _match))
+    .replace(/&(amp|lt|gt|quot|apos|nbsp);/gi, (_match, entity: string) => (
+      { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }[entity.toLowerCase()] ?? _match
+    ))
     .replace(/\s+/g, ' ')
     .trim();
-  const title = [titleMatch?.[1], headingTitle, headingMatch?.[2]]
-    .map(value => value ? decodeTitle(value) : '')
+}
+
+function textOf(html: string): string {
+  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/** The document's own title. The heading wins over <title>, because many EPUBs
+    put the book's name in <title> and the real chapter label in the <h1>. */
+export function extractChapterTitle(html: string): string {
+  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const headingMatch = html.match(/<h[1-6]\b([^>]*)>([\s\S]*?)<\/h[1-6]>/i);
+  const headingTitle = headingMatch?.[1].match(/\btitle\s*=\s*(["'])(.*?)\1/i)?.[2];
+  return [headingMatch?.[2], headingTitle, titleMatch?.[1]]
+    .map(value => (value ? decodeText(value) : ''))
     .find(value => value.length > 0) ?? 'Untitled Chapter';
+}
 
-  /* Extract body content */
-  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-  const bodyHtml = bodyMatch ? bodyMatch[1] : html;
+/** Headings that read as a chapter marker rather than a sub-heading. */
+function isChapterHeading(text: string): boolean {
+  const value = text.trim();
+  if (!value) return false;
+  if (/^\d{1,4}[.)]?$/.test(value)) return true;
+  return /^(?:chapter|chap\.|ch\.|part|book|volume|prologue|epilogue|interlude|afterword|foreword|bonus)\b/i.test(value);
+}
 
-  return { title, content: sanitizeChapterHtml(bodyHtml) };
+/** Anything shorter than this is treated as a stray heading, not its own chapter. */
+const MIN_CHAPTER_TEXT = 80;
+
+/**
+ * Split one document into its chapters. Documents with fewer than two chapter
+ * headings are returned untouched, so a normal one-file-per-chapter EPUB is not
+ * disturbed; a document holding a whole book becomes many chapters.
+ */
+export function splitChapterParts(
+  bodyHtml: string,
+  fallbackTitle: string,
+  frontMatterTitle: string = fallbackTitle,
+): { title: string; html: string }[] {
+  const headings = [...bodyHtml.matchAll(/<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1>/gi)];
+  const starts = headings
+    .map(match => ({
+      index: match.index ?? 0,
+      title: decodeText(match[2]),
+    }))
+    .filter(entry => isChapterHeading(entry.title));
+
+  if (starts.length < 2) return [{ title: fallbackTitle, html: bodyHtml }];
+
+  const parts: { title: string; html: string }[] = [];
+  const preamble = bodyHtml.slice(0, starts[0].index);
+  // Substantial front matter (credits, a translator's note) keeps its own entry,
+  // labelled with the book title rather than the first chapter's heading.
+  if (textOf(preamble).length > 0) parts.push({ title: frontMatterTitle, html: preamble });
+
+  starts.forEach((entry, index) => {
+    const end = starts[index + 1]?.index ?? bodyHtml.length;
+    parts.push({ title: entry.title || `${fallbackTitle} ${index + 1}`, html: bodyHtml.slice(entry.index, end) });
+  });
+
+  /* A repeated heading, or a stub title page, can leave a fragment with almost no
+     text. Drop it rather than folding it forward, which would rename the chapter
+     that follows and hide its real heading. Only a trailing fragment is kept, by
+     appending it to the chapter before it. */
+  const kept = parts.filter((part, index) => (
+    textOf(part.html).length >= MIN_CHAPTER_TEXT || index === parts.length - 1
+  ));
+  if (kept.length > 1 && textOf(kept[kept.length - 1].html).length < MIN_CHAPTER_TEXT) {
+    const tail = kept.pop()!;
+    kept[kept.length - 1].html += tail.html;
+  }
+  return kept.length > 0 ? kept : [{ title: fallbackTitle, html: bodyHtml }];
+}
+
+/** Back-compat helper: one document as a single chapter. */
+export function extractChapterContent(html: string): { title: string; content: string } {
+  return { title: extractChapterTitle(html), content: sanitizeChapterHtml(bodyHtmlOf(html)) };
 }
 
 /* ── Utility: blob → data URL ── */

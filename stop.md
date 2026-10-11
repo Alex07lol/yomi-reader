@@ -92,7 +92,7 @@ placeholders and environment-variable names only.
 - Database addition: `supabase/migrations/20261009000600_community_notifications.sql`
   (`notifications` table, SECURITY DEFINER fan-out triggers, recipient-only RLS and the
   `mark_all_notifications_read` RPC). No existing table, policy or grant was weakened.
-- `npm run build`, `npm run test` (112 tests) and `npm run db:verify` (106 checks) pass.
+- `npm run build`, `npm run test` (112 tests) and `npm run db:verify` (107 checks) pass.
 - Outstanding before calling this production-ready: apply migration 006 to a real
   Supabase project and verify hosted notifications; perform a human PWA pass for install
   and share target; and validate a real offline reload on a production build. `supabase
@@ -114,7 +114,7 @@ placeholders and environment-variable names only.
   `src/data/reader-offline.test.ts` covers network/saved-snapshot/personal-import precedence.
   A mutation check (breaking both offline fallbacks) failed 4 of these tests, confirming they
   bite; both files were restored unchanged.
-- `npm run build`, `npm run test` (26 files, 188 tests) and `npm run db:verify` (106 checks) pass.
+- `npm run build`, `npm run test` (32 files, 220 tests) and `npm run db:verify` (107 checks) pass.
 - Hosted Supabase is connected (`yrajxgfflhianlvrkkdc`, six migrations pushed) and checked
   with the publishable key: public tables answer 200 while `comment_revisions`,
   `notifications` and `reading_shelves` return 42501 for `anon`. Community config now flows
@@ -124,6 +124,11 @@ placeholders and environment-variable names only.
   bookmark pill is replaced by `#library?bookmarked=1`. `AccountMenu.ts` and
   `ThemeSelector.ts` were absorbed and deleted. `src/components/TopMenu.test.ts` mounts the
   real component against mocked community/storage/theme modules.
+- EPUB import splits a whole-book document into chapters on its headings; shelves are a
+  four-choice dropdown (Want to read / Reading / Completed / Dropped, migration
+  `20261011000100`); a local navbar icon reports new chapters on shelved novels. The
+  notification bell and the new icon had their panels nested inside their triggers, which
+  reopened them on a row click — both are siblings of their trigger now.
 - Outstanding: a human pass on a real device (safe-area insets, keyboard resizing, install
   prompt, share target, true offline reload); no browser automation is available here.
 

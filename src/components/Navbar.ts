@@ -3,6 +3,7 @@
 import { el, empty } from '../utils/dom';
 import { router } from '../utils/router';
 import { renderTopMenu } from './TopMenu';
+import { renderShelfUpdates } from './ShelfUpdates';
 import { renderNotificationBell } from './NotificationBell';
 import { renderInstallButton } from './InstallButton';
 
@@ -51,6 +52,7 @@ export function renderNavbar(
         }, el('span', { className: 'navbar-add-book-plus', 'aria-hidden': 'true', text: '+' }), 'Add book') : null,
         el('div', { className: 'navbar-install-container' }),
         el('div', { className: 'navbar-notifications-container' }),
+        el('div', { className: 'navbar-updates-container' }),
         el('div', { className: 'navbar-menu-container' }),
       ),
     ),
@@ -59,5 +61,6 @@ export function renderNavbar(
   container.appendChild(nav);
   renderNotificationBell(nav.querySelector('.navbar-notifications-container')!);
   renderInstallButton(nav.querySelector('.navbar-install-container')!);
+  renderShelfUpdates(nav.querySelector('.navbar-updates-container')!);
   renderTopMenu(nav.querySelector('.navbar-menu-container')!);
 }

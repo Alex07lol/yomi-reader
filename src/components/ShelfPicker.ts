@@ -1,45 +1,50 @@
 /* ─── Shelf picker ───
-   Places a novel on Want to read / Reading / Finished. Writes to IndexedDB
-   immediately and, when the reader is signed in, mirrors the change to their
-   account. A failed mirror never blocks or reverts the local change. */
+   Places a novel on one of the reading shelves with a single dropdown. Writes to
+   IndexedDB immediately and, when the reader is signed in, mirrors the change to
+   their account. A failed mirror never blocks or reverts the local change. */
 
 import { el, empty } from '../utils/dom';
 import { SHELF_IDS, SHELF_LABELS } from '../utils/shelves';
 import { getShelf, removeShelfLocal, setShelfLocal } from '../storage/shelves';
+import { setShelfUpdateBaseline } from '../storage/updates';
 import { pushShelfChange } from '../community';
+import { renderSelectMenu } from './SelectMenu';
 import type { ReadingShelf, ShelfId } from '../models';
 
 export interface ShelfPickerOptions {
   novelId: string;
+  /** Chapters published so far; recorded as the "seen" baseline when shelved. */
+  chapterCount?: number;
   compact?: boolean;
   onChange?: (shelf: ReadingShelf | undefined) => void;
 }
 
+/** The dropdown's "no shelf" choice, which clears the novel's placement. */
+const NO_SHELF = '';
+
 export class ShelfPicker {
   readonly element: HTMLElement;
   private readonly novelId: string;
+  private readonly chapterCount: number;
   private readonly onChange?: (shelf: ReadingShelf | undefined) => void;
-  private readonly buttonsHost: HTMLElement;
+  private readonly selectHost: HTMLElement;
   private readonly statusEl: HTMLElement;
   private current: ReadingShelf | undefined;
   private busy = false;
 
   constructor(options: ShelfPickerOptions) {
     this.novelId = options.novelId;
+    this.chapterCount = Math.max(0, options.chapterCount ?? 0);
     this.onChange = options.onChange;
 
-    this.buttonsHost = el('div', {
-      className: 'shelf-picker-buttons',
-      role: 'group',
-      'aria-label': 'Reading shelf',
-    });
+    this.selectHost = el('span', { className: 'shelf-picker-select' });
     this.statusEl = el('span', { className: 'shelf-picker-status', role: 'status', 'aria-live': 'polite' });
 
     this.element = el('div', {
       className: `shelf-picker${options.compact ? ' shelf-picker-compact' : ''}`,
     },
       el('span', { className: 'shelf-picker-label', text: 'Shelf' }),
-      this.buttonsHost,
+      this.selectHost,
       this.statusEl,
     );
 
@@ -57,31 +62,24 @@ export class ShelfPicker {
   }
 
   private render(): void {
-    empty(this.buttonsHost);
+    empty(this.selectHost);
     const active = this.current && !this.current.deleted ? this.current.shelf : null;
 
-    for (const shelf of SHELF_IDS) {
-      const isActive = active === shelf;
-      this.buttonsHost.appendChild(el('button', {
-        className: `shelf-picker-button${isActive ? ' is-active' : ''}`,
-        type: 'button',
-        disabled: this.busy,
-        'aria-pressed': String(isActive),
-        text: SHELF_LABELS[shelf],
-        onclick: () => void this.choose(shelf),
-      }));
-    }
-
-    if (active) {
-      this.buttonsHost.appendChild(el('button', {
-        className: 'shelf-picker-clear',
-        type: 'button',
-        disabled: this.busy,
-        text: 'Remove',
-        'aria-label': 'Remove from shelves',
-        onclick: () => void this.clear(),
-      }));
-    }
+    this.selectHost.appendChild(renderSelectMenu(
+      'Reading shelf',
+      active ?? NO_SHELF,
+      [
+        { value: NO_SHELF, label: 'Not on a shelf' },
+        ...SHELF_IDS.map(shelf => ({ value: shelf, label: SHELF_LABELS[shelf] })),
+      ],
+      value => {
+        if (value === NO_SHELF) void this.clear();
+        else void this.choose(value as ShelfId);
+      },
+      'shelf-select',
+      '',
+      this.busy,
+    ));
   }
 
   private setStatus(text: string): void {
@@ -97,6 +95,10 @@ export class ShelfPicker {
       this.current = row;
       this.onChange?.(row);
       this.setStatus(`${SHELF_LABELS[shelf]}.`);
+      // Shelving a book must not immediately look like it has new chapters.
+      if (this.chapterCount > 0) {
+        void setShelfUpdateBaseline(this.novelId, this.chapterCount).catch(() => undefined);
+      }
       void pushShelfChange(row).catch(() => undefined);
     } catch {
       this.setStatus('Your shelf could not be saved.');

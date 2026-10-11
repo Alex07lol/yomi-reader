@@ -446,3 +446,32 @@ moves), the bookmarks jump, and Escape/outside-click dismissal. `src/library-ui.
 navbar, menu, bell or library. Mutation checks confirmed all of it bites: un-filtering the
 bookmarks item, dropping the theme save, and sneaking an emoji back each failed the
 relevant test. Suite is 188 tests; `build` and `db:verify` (106 checks) are green.
+
+## Chapters, shelves and book updates
+
+Three more requests, all shipped on `main`:
+
+- **Every EPUB is readable chapter by chapter.** `parseEpub` took one chapter per spine
+  document, so a book packaged as a single XHTML file arrived as one enormous chapter. It
+  now splits a document on chapter headings (`Chapter 12`, `Prologue`, `Interlude`, a bare
+  number) and only when at least two are present, so one-file-per-chapter books are
+  untouched and an ordinary sub-heading is still a sub-heading. Two flaws surfaced while
+  testing: the chapter label preferred a generic `<title>` over the document's own `<h1>`,
+  and folding a stub title page forward renamed the chapter after it.
+- **Shelves became a dropdown** with four choices — Want to read, Reading, Completed,
+  Dropped — replacing the row of pill buttons. Migration `20261011000100` widens the
+  database constraint; the id stays `finished` for the shelf readers see as "Completed",
+  so no rows in IndexedDB or Postgres needed rewriting.
+- **Book updates**: a new navbar icon reports chapters published since the reader last
+  opened each shelved novel, with a badge count and a panel that links straight to the
+  title. Shelves and baselines are both local, so it works signed out and hides itself when
+  nothing is shelved. `src/storage/updates.ts` adds an IndexedDB store (schema v6).
+
+Writing the shelf-updates tests caught a real bug I had shipped twice: both the notification
+bell and the new icon appended their panel **inside** their trigger button, so clicking a row
+bubbled through the trigger's own click handler and reopened the panel as it navigated away.
+Both panels are now siblings of their trigger. Five tests cover the bell, six the new icon,
+seven the pure update rules, and mutation checks confirmed each guard bites (re-nesting either
+panel fails its tests, as does removing the splitter's two-heading threshold).
+
+Suite: 220 tests. `build` and `db:verify` (107 checks) green.

@@ -13,6 +13,7 @@ export { ChapterDrawer } from './ChapterDrawer';
 export { renderFooter } from './Footer';
 export { Reader } from './Reader';
 export { renderTopMenu } from './TopMenu';
+export { renderShelfUpdates } from './ShelfUpdates';
 export { ShelfPicker } from './ShelfPicker';
 export type { ShelfPickerOptions } from './ShelfPicker';
 export { openAccountDialog } from './AuthDialog';

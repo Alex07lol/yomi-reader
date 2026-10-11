@@ -226,10 +226,18 @@ and publishable/anon key. A service-role key must never be placed in the fronten
   - `20261009000600_community_notifications.sql` — a per-recipient notification inbox
     for replies, @mentions and upvotes, written only by SECURITY DEFINER triggers, plus
     the owner-checked `mark_all_notifications_read` RPC.
+  - `20261011000100_reading_shelves_dropped.sql` — widens the allowed shelf values so a
+    reader can park a book as Dropped. The reader-facing "Completed" label is the
+    existing `finished` id, so no rows are rewritten.
 - Discussions are keyed by the stable `novel_id` / `chapter_id` used by the static
   reader data, so they survive chapter title or ordering changes. A row with
   `chapter_id IS NULL` is a novel-level thread.
 - Personal EPUB imports never join the shared discussion space.
+- **EPUB import reads every book chapter by chapter.** Chapters come from the EPUB's
+  spine, and a document that holds a whole book is split on its chapter headings
+  (`Chapter 12`, `Prologue`, `Interlude`, a bare number). Documents with fewer than two
+  chapter headings are left untouched, so a normal one-file-per-chapter EPUB is unaffected;
+  a stray or repeated heading is folded away rather than becoming an empty chapter.
 - **Ratings and reviews** aggregate automatically: novel-level reviews with a 1–5
   rating feed an average, a review count and a star distribution shown on the novel
   page and discussion panel, plus a compact badge on library cards.
@@ -237,9 +245,15 @@ and publishable/anon key. A service-role key must never be placed in the fronten
   comment/review counts, upvotes received and their public comments, which link back
   to the discussion they belong to. Author names in threads link to the profile.
 - **Social sign-in** (Google, GitHub) is available alongside email where configured.
-- **Reading shelves** (Want to read / Reading / Finished) work with no account: they are
-  stored in the reader's browser and filterable from the library. Signing in mirrors them
-  to the account so they follow the reader across devices.
+- **Reading shelves** (Want to read / Reading / Completed / Dropped) work with no
+  account: they are stored in the reader's browser, chosen from a dropdown on a title's
+  page, and filterable from the library's bookmark control. Signing in mirrors them to the
+  account so they follow the reader across devices.
+- **Book updates**: the navbar shows a small icon with a count of chapters published since
+  the reader last opened each title on their shelves. It is local-only, needs no account,
+  hides itself when nothing is shelved, and clears when the list is opened. Opening a title
+  (or shelving it) records where its chapter count stood, so a newly shelved book never
+  reports its own back catalogue as news.
 - **Comment edit history**: when a comment is edited the previous text is kept, and an
   "edited" marker reveals the history with its timestamps. History is private to the
   comment's author and moderators.

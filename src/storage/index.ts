@@ -3,7 +3,7 @@
 import type { Chapter, Novel, ReadingProgress, UserSettings } from '../models';
 
 const DB_NAME = 'yomi-reader';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 export function openStorageDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -33,6 +33,9 @@ export function openStorageDB(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains('shelves')) {
         db.createObjectStore('shelves', { keyPath: 'novelId' });
+      }
+      if (!db.objectStoreNames.contains('shelf_updates')) {
+        db.createObjectStore('shelf_updates', { keyPath: 'novelId' });
       }
     };
     req.onsuccess = () => {
