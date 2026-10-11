@@ -148,7 +148,7 @@
 
 .theme-option.active {
   background: var(--accent);
-  color: var(--text-on-accent);
+  color: var(--color-text-on-accent);
   border-color: var(--accent);
 }
 
@@ -725,7 +725,7 @@
 
 .btn-primary {
   background: var(--accent);
-  color: var(--text-on-accent);
+  color: var(--color-text-on-accent);
 }
 
 .btn-primary:hover {
@@ -1949,7 +1949,7 @@ mark.reader-search-hit.is-active {
 
 .share-target-title {
   margin: 0;
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
 }
