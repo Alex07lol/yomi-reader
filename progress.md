@@ -403,3 +403,20 @@ in 4 places, then passed again after restoring both files byte-for-byte.
   simulated-scope tests plus the production `dist/sw.js`, not a live offline reload.
 - No browser automation is available in this environment, so visual sheet/drag behaviour and
   rotation were verified through CSS contracts rather than screenshots.
+
+## Hosted Supabase session
+
+Project `yrajxgfflhianlvrkkdc` now has the six community migrations applied, and a gitignored
+`.env.local` holds the public `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`. Checked against
+the live project with the publishable key: `/auth/v1/health` answers, `profiles`, `comments`,
+`comment_likes` and `novel_rating_summary` are readable anonymously (`200` with `[]`), while
+`comment_revisions`, `notifications` and `reading_shelves` are refused for `anon` (`42501`) —
+the intended grant split, confirmed end to end rather than assumed.
+
+Wiring that up exposed a genuinely fragile test: `src/community/supabase.test.ts` only passed
+while the machine had no `.env.local`. Vitest rewrites `import.meta.env` per module during
+transform, so `vi.stubEnv()` never reaches a module that reads it directly. Every community
+`import.meta.env` read now goes through `src/community/env.ts`, which the tests mock; both
+`supabase.test.ts` and `oauth.test.ts` inject configuration explicitly and pass with and
+without `.env.local`. The suite is now 169 tests, including a positive case that builds a real
+client from a publishable key.

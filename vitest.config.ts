@@ -7,6 +7,7 @@ export default defineConfig({
     css: true,
     include: ['src/**/*.test.ts'],
     restoreMocks: true,
+    unstubEnvs: true,
     clearMocks: true,
   },
 });

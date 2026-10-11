@@ -4,6 +4,7 @@
 
 import type { Session, User } from '@supabase/supabase-js';
 import { getCommunityClient, requireCommunityClient } from './supabase';
+import { readCommunityEnv } from './env';
 
 export const USERNAME_PATTERN = /^[a-z0-9_]{3,24}$/;
 export const MIN_PASSWORD_LENGTH = 8;
@@ -166,8 +167,7 @@ export const OAUTH_PROVIDER_LABELS: Record<OAuthProvider, string> = {
 const KNOWN_OAUTH_PROVIDERS: OAuthProvider[] = ['google', 'github'];
 
 export function getOAuthProviders(rawOverride?: string): OAuthProvider[] {
-  const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {};
-  const raw = rawOverride ?? env.VITE_SUPABASE_OAUTH_PROVIDERS;
+  const raw = rawOverride ?? readCommunityEnv().oauthProviders;
   if (raw === undefined) return [...KNOWN_OAUTH_PROVIDERS];
   const requested = raw.split(',').map((value) => value.trim().toLowerCase());
   return KNOWN_OAUTH_PROVIDERS.filter((provider) => requested.includes(provider));

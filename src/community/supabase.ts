@@ -8,6 +8,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { emitCommunityEvent } from './events';
+import { readCommunityEnv } from './env';
 
 export type CommunityAvailability = 'unknown' | 'unconfigured' | 'ready';
 
@@ -19,9 +20,7 @@ export class CommunityUnavailableError extends Error {
 }
 
 function readConfig(): { url: string; anonKey: string } | null {
-  const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {};
-  const url = (env.VITE_SUPABASE_URL ?? '').trim();
-  const anonKey = (env.VITE_SUPABASE_ANON_KEY ?? '').trim();
+  const { url, anonKey } = readCommunityEnv();
   if (!url || !anonKey) return null;
   return { url, anonKey };
 }

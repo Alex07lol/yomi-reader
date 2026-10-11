@@ -6,6 +6,14 @@ const h = vi.hoisted(() => {
   return { state };
 });
 
+/* The allow-list comes from the environment; inject it explicitly so the test
+   does not depend on a developer's `.env.local` (see ./env.ts). */
+const env = vi.hoisted(() => ({ oauthProviders: undefined as string | undefined }));
+
+vi.mock('./env', () => ({
+  readCommunityEnv: () => ({ url: '', anonKey: '', oauthProviders: env.oauthProviders }),
+}));
+
 vi.mock('./supabase', () => ({
   getCommunityClient: async () => h.state.config,
   requireCommunityClient: async () => {
@@ -18,12 +26,20 @@ vi.mock('./supabase', () => ({
 afterEach(() => {
   h.state.called = 0;
   h.state.config = null;
+  env.oauthProviders = undefined;
 });
 
 describe('getOAuthProviders', () => {
   it('defaults to Google and GitHub when unset', () => {
-    delete (import.meta.env as Record<string, unknown>).VITE_SUPABASE_OAUTH_PROVIDERS;
     expect(getOAuthProviders()).toEqual(['google', 'github']);
+  });
+
+  it('reads the allow-list from the environment when no override is given', () => {
+    env.oauthProviders = 'github';
+    expect(getOAuthProviders()).toEqual(['github']);
+
+    env.oauthProviders = '';
+    expect(getOAuthProviders()).toEqual([]);
   });
 
   it('honours an explicit allow-list', () => {
