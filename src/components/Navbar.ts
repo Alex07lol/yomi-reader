@@ -2,8 +2,7 @@
 
 import { el, empty } from '../utils/dom';
 import { router } from '../utils/router';
-import { renderThemeSelector } from './ThemeSelector';
-import { renderAccountMenu } from './AccountMenu';
+import { renderTopMenu } from './TopMenu';
 import { renderNotificationBell } from './NotificationBell';
 import { renderInstallButton } from './InstallButton';
 
@@ -52,15 +51,13 @@ export function renderNavbar(
         }, el('span', { className: 'navbar-add-book-plus', 'aria-hidden': 'true', text: '+' }), 'Add book') : null,
         el('div', { className: 'navbar-install-container' }),
         el('div', { className: 'navbar-notifications-container' }),
-        el('div', { className: 'navbar-account-container' }),
-        el('div', { className: 'navbar-theme-container' }),
+        el('div', { className: 'navbar-menu-container' }),
       ),
     ),
   );
 
   container.appendChild(nav);
-  renderThemeSelector(nav.querySelector('.navbar-theme-container')!);
   renderNotificationBell(nav.querySelector('.navbar-notifications-container')!);
   renderInstallButton(nav.querySelector('.navbar-install-container')!);
-  renderAccountMenu(nav.querySelector('.navbar-account-container')!);
+  renderTopMenu(nav.querySelector('.navbar-menu-container')!);
 }

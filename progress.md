@@ -420,3 +420,29 @@ transform, so `vi.stubEnv()` never reaches a module that reads it directly. Ever
 `supabase.test.ts` and `oauth.test.ts` inject configuration explicitly and pass with and
 without `.env.local`. The suite is now 169 tests, including a positive case that builds a real
 client from a publishable key.
+
+## Chrome cleanup (review of the running UI)
+
+Three things the review flagged, all fixed and pushed on `main`:
+
+- **The account dialog sat against the left edge.** The app-wide `* { margin: 0 }` reset
+  outranks the UA stylesheet's `dialog { margin: auto }`, which is what centres a modal.
+  `.community-dialog` restores it.
+- **The library had a sidebar Shelves group and a "🔖 Bookmarked" pill.** Both are gone.
+  A single icon-only menu now sits in the top-right corner with three sections —
+  account (sign in / create account when signed out, profile and sign out when in),
+  appearance (the six themes, with the check marking the active one) and bookmarks
+  (`#library?bookmarked=1`, read by the router and honoured by the library page).
+- **Coloured emoji are gone from the chrome.** `src/components/icons.ts` draws inline SVG
+  with `currentColor`, so the bell, the menu and every item follow the theme.
+  `AccountMenu.ts` and `ThemeSelector.ts` were absorbed into `TopMenu.ts` and deleted,
+  along with their now-dead CSS (and the dead `.theme-option` rules).
+
+Tests: `src/components/TopMenu.test.ts` (8) mounts the real component with the community,
+storage and theme modules mocked — it covers the new-user and signed-in views, an
+unconfigured deployment, choosing a theme (applied, persisted, panel stays open, check
+moves), the bookmarks jump, and Escape/outside-click dismissal. `src/library-ui.test.ts`
+(11) pins the static contracts, including that no pictographic emoji survives in the
+navbar, menu, bell or library. Mutation checks confirmed all of it bites: un-filtering the
+bookmarks item, dropping the theme save, and sneaking an emoji back each failed the
+relevant test. Suite is 188 tests; `build` and `db:verify` (106 checks) are green.

@@ -40,8 +40,11 @@ class Router {
           route.paramNames.forEach((name, i) => {
             params[name] = decodeURIComponent(m[i + 1]);
           });
-          const search = new URLSearchParams(query).get('search');
+          const queryParams = new URLSearchParams(query);
+          const search = queryParams.get('search');
           if (search !== null) params.search = search;
+          const bookmarked = queryParams.get('bookmarked');
+          if (bookmarked !== null) params.bookmarked = bookmarked;
           route.handler(params);
           return;
         }

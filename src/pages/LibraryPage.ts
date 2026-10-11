@@ -9,7 +9,7 @@ import { SHELF_IDS } from '../utils/shelves';
 import { renderNavbar, renderFooter, renderContinueReading, renderNovelGrid, renderFilters } from '../components';
 import type { FilterCallbacks } from '../components';
 
-export async function renderLibraryPage(container: HTMLElement, initialSearch = ''): Promise<void> {
+export async function renderLibraryPage(container: HTMLElement, initialSearch = '', initialBookmarked = false): Promise<void> {
   empty(container);
 
   const page = el('div', { className: 'page page-library' });
@@ -40,7 +40,8 @@ export async function renderLibraryPage(container: HTMLElement, initialSearch = 
     sourceLanguages: [],
     translationLanguages: [],
     status: [],
-    shelves: [],
+    // Reached from the top-right menu's "Bookmarked novels" item.
+    shelves: initialBookmarked ? [...SHELF_IDS] : [],
     sort: 'recently-added' as SortOption,
   };
 
@@ -169,28 +170,6 @@ export async function renderLibraryPage(container: HTMLElement, initialSearch = 
     renderFilters(sidebarEl, filters, options, callbacks);
 
     empty(contentEl);
-
-    /* Shelves are local-first, so they are surfaced as one bookmark toggle at the
-       top of the library rather than a group hidden in the sidebar. It filters to
-       novels saved to any shelf and clears itself with "Clear filters". */
-    const bookmarked = filters.shelves.length > 0;
-    const bookmarkLabel = bookmarked ? 'Show all novels' : 'Show bookmarked novels';
-    contentEl.appendChild(el('div', { className: 'library-toolbar' },
-      el('button', {
-        className: `library-bookmark-toggle${bookmarked ? ' is-active' : ''}`,
-        type: 'button',
-        'aria-pressed': String(bookmarked),
-        'aria-label': bookmarkLabel,
-        title: bookmarkLabel,
-        onclick: () => {
-          filters.shelves = bookmarked ? [] : [...SHELF_IDS];
-          rerender();
-        },
-      },
-        el('span', { className: 'library-bookmark-icon', 'aria-hidden': 'true', text: '🔖' }),
-        el('span', { className: 'library-bookmark-label', text: 'Bookmarked' }),
-      ),
-    ));
 
     if (progressUnavailable) {
       contentEl.appendChild(el('p', {

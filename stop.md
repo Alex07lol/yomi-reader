@@ -114,11 +114,16 @@ placeholders and environment-variable names only.
   `src/data/reader-offline.test.ts` covers network/saved-snapshot/personal-import precedence.
   A mutation check (breaking both offline fallbacks) failed 4 of these tests, confirming they
   bite; both files were restored unchanged.
-- `npm run build`, `npm run test` (26 files, 169 tests) and `npm run db:verify` (106 checks) pass.
+- `npm run build`, `npm run test` (26 files, 188 tests) and `npm run db:verify` (106 checks) pass.
 - Hosted Supabase is connected (`yrajxgfflhianlvrkkdc`, six migrations pushed) and checked
   with the publishable key: public tables answer 200 while `comment_revisions`,
   `notifications` and `reading_shelves` return 42501 for `anon`. Community config now flows
   through `src/community/env.ts` so the tests no longer depend on a local `.env.local`.
+- Chrome: the account dialog is centred again, the top-right corner holds one icon-only
+  menu (account, appearance, bookmarks) built from monochrome SVG icons, and the library's
+  bookmark pill is replaced by `#library?bookmarked=1`. `AccountMenu.ts` and
+  `ThemeSelector.ts` were absorbed and deleted. `src/components/TopMenu.test.ts` mounts the
+  real component against mocked community/storage/theme modules.
 - Outstanding: a human pass on a real device (safe-area insets, keyboard resizing, install
   prompt, share target, true offline reload); no browser automation is available here.
 

@@ -90,7 +90,7 @@ async function boot(): Promise<void> {
 
   router.on('library', async (params) => {
     disposeReader(app);
-    await renderLibraryPage(app, params.search ?? '');
+    await renderLibraryPage(app, params.search ?? '', params.bookmarked === '1');
   });
 
   router.on('novel/:id', async (params) => {

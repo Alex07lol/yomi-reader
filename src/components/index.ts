@@ -1,5 +1,4 @@
 export { renderNavbar } from './Navbar';
-export { renderThemeSelector } from './ThemeSelector';
 export { renderSelectMenu } from './SelectMenu';
 export { renderNovelCard } from './NovelCard';
 export { renderNovelGrid } from './NovelGrid';
@@ -13,7 +12,7 @@ export { renderDownloadPanel } from './DownloadPanel';
 export { ChapterDrawer } from './ChapterDrawer';
 export { renderFooter } from './Footer';
 export { Reader } from './Reader';
-export { renderAccountMenu } from './AccountMenu';
+export { renderTopMenu } from './TopMenu';
 export { ShelfPicker } from './ShelfPicker';
 export type { ShelfPickerOptions } from './ShelfPicker';
 export { openAccountDialog } from './AuthDialog';

@@ -20,6 +20,7 @@ import {
 } from '../community';
 import type { CommunityNotification } from '../community';
 import { renderAvatar } from './community-shared';
+import { bellIcon } from './icons';
 
 const mounted = new Set<HTMLElement>();
 let panelOpen: HTMLElement | null = null;
@@ -181,7 +182,7 @@ async function paint(container: HTMLElement): Promise<void> {
     'aria-haspopup': 'dialog',
     'aria-label': 'Notifications',
   },
-    el('span', { className: 'community-notification-icon', 'aria-hidden': 'true', text: '🔔' }),
+    bellIcon('community-notification-icon'),
     el('span', { className: 'community-notification-badge', hidden: true, 'aria-hidden': 'true' }),
   ) as HTMLButtonElement;
   button.addEventListener('click', (event) => {

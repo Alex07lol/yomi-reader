@@ -33,10 +33,8 @@
 .community-button:focus-visible,
 .community-link-button:focus-visible,
 .community-action:focus-visible,
-.community-account-button:focus-visible,
-.community-account-menu-item:focus-visible,
-.community-account-signin:focus-visible,
-.community-account-register:focus-visible,
+.top-menu-trigger:focus-visible,
+.top-menu-item:focus-visible,
 .chapter-discussion-toggle:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -136,68 +134,68 @@
 }
 .community-avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
 
-/* ── Account menu ── */
+/* ── Navbar menu: account, appearance, bookmarks ──
+   One trigger in the top-right corner replaces the separate sign-in buttons, theme
+   select and bookmark control. Bundling them here is what keeps the navbar quiet. */
 
-.navbar-account-container { position: relative; display: flex; align-items: center; gap: var(--space-2); }
-.community-account-signin,
-.community-account-register {
-  padding: 6px 10px;
-  border: 1px solid var(--border-primary);
+.navbar-menu-container { position: relative; display: flex; align-items: center; }
+
+.top-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
   cursor: pointer;
+  transition: color var(--transition), background var(--transition), border-color var(--transition);
 }
-.community-account-register { border-color: transparent; background: var(--accent); color: var(--color-text-on-accent); }
-.community-account-signin:hover { color: var(--text-primary); border-color: var(--accent); }
-.community-account-register:hover { background: var(--accent-hover); }
-.community-account-unavailable { color: var(--text-tertiary); font-size: var(--font-size-xs); }
-.community-account-button {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  max-width: 180px;
-  padding: 4px 8px 4px 4px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-full);
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
+.top-menu-trigger:hover,
+.top-menu-trigger[aria-expanded='true'] {
+  border-color: var(--border-primary);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
-.community-account-button:hover { border-color: var(--border-primary); color: var(--text-primary); }
-.community-account-username {
-  overflow: hidden;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.community-account-menu {
+
+.top-menu-panel {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
   z-index: var(--z-index-drawer);
-  width: 232px;
+  width: 248px;
+  max-height: min(72dvh, 560px);
+  overflow-y: auto;
   padding: var(--space-2);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-lg);
   background: var(--bg-secondary);
   box-shadow: var(--shadow-lg);
+  overscroll-behavior: contain;
 }
-.community-account-menu-header {
+
+.top-menu-section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) var(--space-2) var(--space-1);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.top-menu-section-icon { width: 14px; height: 14px; flex: none; }
+
+.top-menu-group { display: flex; flex-direction: column; gap: 1px; padding-bottom: var(--space-1); }
+
+.top-menu-item {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2);
-  margin-bottom: var(--space-1);
-  border-bottom: 1px solid var(--border-primary);
-}
-.community-account-name { margin: 0; color: var(--text-primary); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); }
-.community-account-since { margin: 2px 0 0; color: var(--text-tertiary); font-size: var(--font-size-xs); }
-.community-account-menu-item {
-  display: block;
   width: 100%;
   padding: 8px 10px;
   border: 0;
@@ -209,7 +207,36 @@
   text-align: left;
   cursor: pointer;
 }
-.community-account-menu-item:hover { background: var(--bg-hover); }
+.top-menu-item:hover { background: var(--bg-hover); }
+.top-menu-item.is-active { color: var(--accent); }
+.top-menu-icon, .top-menu-icon-slot, .top-menu-check { width: 16px; height: 16px; flex: none; }
+.top-menu-item-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.top-menu-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  margin-bottom: var(--space-1);
+  border-bottom: 1px solid var(--border-primary);
+}
+.top-menu-identity { min-width: 0; }
+.top-menu-name {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.top-menu-since { margin: 2px 0 0; color: var(--text-tertiary); font-size: var(--font-size-xs); }
+.top-menu-note {
+  margin: var(--space-1) var(--space-2) var(--space-2);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-relaxed);
+}
 
 /* ── Dialog ── */
 
@@ -505,7 +532,6 @@
   .community-comment-content,
   .community-comment-actions { padding-left: 0; }
   .community-comment-reply { margin-left: var(--space-3); padding-left: var(--space-3); }
-  .community-account-username { display: none; }
   .community-admin-main { width: calc(100% - 2 * var(--space-4)); padding: var(--space-6) 0 var(--space-12); }
 }
 

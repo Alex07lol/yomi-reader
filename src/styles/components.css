@@ -101,56 +101,7 @@
   background: var(--bg-hover);
 }
 
-.navbar-theme-container {
-  display: flex;
-  align-items: center;
-}
 
-.navbar-theme-container .theme-selector {
-  padding: 0;
-}
-
-.theme-selector {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.theme-selector-label {
-  font-size: var(--font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-tertiary);
-  display: none;
-}
-
-.theme-selector-options {
-  display: flex;
-  gap: var(--space-1);
-}
-
-.theme-option {
-  font-size: var(--font-size-xs);
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-full);
-  color: var(--text-secondary);
-  background: var(--bg-secondary);
-  cursor: pointer;
-  transition: all var(--transition);
-  font-family: inherit;
-}
-
-.theme-option:hover {
-  border-color: var(--accent);
-  color: var(--text-primary);
-}
-
-.theme-option.active {
-  background: var(--accent);
-  color: var(--color-text-on-accent);
-  border-color: var(--accent);
-}
 
 /* ── Library Layout ── */
 
@@ -1329,43 +1280,6 @@
   margin-bottom: var(--space-4);
   color: var(--text-primary);
 }
-
-/* ── Library toolbar ── */
-
-.library-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: var(--space-3);
-}
-
-.library-bookmark-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 36px;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-full);
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  font-family: inherit;
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-  transition: color var(--transition), border-color var(--transition), background var(--transition);
-}
-
-.library-bookmark-toggle:hover {
-  color: var(--text-primary);
-  border-color: var(--accent);
-}
-
-.library-bookmark-toggle.is-active {
-  border-color: var(--accent);
-  background: var(--accent-muted);
-  color: var(--text-primary);
-}
-
-.library-bookmark-icon { font-size: var(--font-size-base); line-height: 1; }
 
 /* ── Library Count ── */
 
