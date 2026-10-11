@@ -3,6 +3,9 @@
 import { el, empty } from '../utils/dom';
 import { router } from '../utils/router';
 import { renderThemeSelector } from './ThemeSelector';
+import { renderAccountMenu } from './AccountMenu';
+import { renderNotificationBell } from './NotificationBell';
+import { renderInstallButton } from './InstallButton';
 
 export function renderNavbar(
   container: HTMLElement,
@@ -47,6 +50,9 @@ export function renderNavbar(
           type: 'button',
           onclick: () => router.navigate('admin'),
         }, el('span', { className: 'navbar-add-book-plus', 'aria-hidden': 'true', text: '+' }), 'Add book') : null,
+        el('div', { className: 'navbar-install-container' }),
+        el('div', { className: 'navbar-notifications-container' }),
+        el('div', { className: 'navbar-account-container' }),
         el('div', { className: 'navbar-theme-container' }),
       ),
     ),
@@ -54,4 +60,7 @@ export function renderNavbar(
 
   container.appendChild(nav);
   renderThemeSelector(nav.querySelector('.navbar-theme-container')!);
+  renderNotificationBell(nav.querySelector('.navbar-notifications-container')!);
+  renderInstallButton(nav.querySelector('.navbar-install-container')!);
+  renderAccountMenu(nav.querySelector('.navbar-account-container')!);
 }

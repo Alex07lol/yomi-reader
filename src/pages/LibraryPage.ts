@@ -1,9 +1,10 @@
 /* ─── Library Page ─── */
 
 import { el, empty } from '../utils/dom';
-import type { Novel, ReadingProgress, LibraryFilters, SortOption, NovelStatus } from '../models';
+import type { Novel, ReadingProgress, ReadingShelf, ShelfId, LibraryFilters, SortOption, NovelStatus } from '../models';
 import { fetchAllNovels, fetchLibraryOptions, getLibraryNovelAvailability, mergeProgressIntoNovels, refreshLibraryNovelAvailability, type LibraryNovelAvailability } from '../data';
 import { getAllReadingProgress } from '../storage';
+import { getActiveShelves } from '../storage/shelves';
 import { renderNavbar, renderFooter, renderContinueReading, renderNovelGrid, renderFilters } from '../components';
 import type { FilterCallbacks } from '../components';
 
@@ -25,9 +26,11 @@ export async function renderLibraryPage(container: HTMLElement, initialSearch = 
   renderFooter(footerContainer);
 
   // State
-  let allNovels: (Novel & { readingProgress?: ReadingProgress; libraryAvailability?: LibraryNovelAvailability })[] = [];
+  let allNovels: (Novel & { readingProgress?: ReadingProgress; libraryAvailability?: LibraryNovelAvailability; readingShelf?: ShelfId })[] = [];
   let progressList: ReadingProgress[] = [];
   let progressUnavailable = false;
+  let shelfRows: ReadingShelf[] = [];
+  let shelvesUnavailable = false;
   let options: Awaited<ReturnType<typeof fetchLibraryOptions>> = { genres: [], tags: [], sourceLanguages: [], translationLanguages: [] };
   let filters: LibraryFilters = {
     search: initialSearch,
@@ -36,6 +39,7 @@ export async function renderLibraryPage(container: HTMLElement, initialSearch = 
     sourceLanguages: [],
     translationLanguages: [],
     status: [],
+    shelves: [],
     sort: 'recently-added' as SortOption,
   };
 
@@ -52,11 +56,23 @@ export async function renderLibraryPage(container: HTMLElement, initialSearch = 
       progressList = [];
       progressUnavailable = true;
     }
+    try {
+      shelfRows = await getActiveShelves();
+    } catch {
+      // Shelves are an enhancement too; never block browsing over them.
+      shelfRows = [];
+      shelvesUnavailable = true;
+    }
+    const shelfByNovel = new Map(shelfRows.map(row => [row.novelId, row.shelf]));
     await refreshLibraryNovelAvailability();
-    allNovels = mergeProgressIntoNovels(novels, progressList).map(novel => ({
-      ...novel,
-      libraryAvailability: getLibraryNovelAvailability(novel.id),
-    }));
+    allNovels = mergeProgressIntoNovels(novels, progressList).map(novel => {
+      const assignedShelf = shelfByNovel.get(novel.id);
+      return {
+        ...novel,
+        libraryAvailability: getLibraryNovelAvailability(novel.id),
+        ...(assignedShelf ? { readingShelf: assignedShelf } : {}),
+      };
+    });
     options = await fetchLibraryOptions();
     mainContainer.innerHTML = '';
   } catch (err) {
@@ -112,6 +128,9 @@ export async function renderLibraryPage(container: HTMLElement, initialSearch = 
     if (filters.status.length > 0) {
       filtered = filtered.filter(n => filters.status.includes(n.status));
     }
+    if (filters.shelves.length > 0) {
+      filtered = filtered.filter(n => n.readingShelf !== undefined && filters.shelves.includes(n.readingShelf));
+    }
 
     return sortNovels(filtered);
   };
@@ -127,9 +146,10 @@ export async function renderLibraryPage(container: HTMLElement, initialSearch = 
     onToggleSourceLang: (l) => { filters.sourceLanguages = toggleArray(filters.sourceLanguages, l); rerender(); },
     onToggleTransLang: (l) => { filters.translationLanguages = toggleArray(filters.translationLanguages, l); rerender(); },
     onToggleStatus: (s) => { filters.status = toggleArray(filters.status, s) as NovelStatus[]; rerender(); },
+    onToggleShelf: (s) => { filters.shelves = toggleArray(filters.shelves, s) as ShelfId[]; rerender(); },
     onSortChange: (s) => { filters.sort = s; rerender(); },
     onClear: () => {
-      filters = { search: '', genres: [], tags: [], sourceLanguages: [], translationLanguages: [], status: [], sort: 'recently-added' };
+      filters = { search: '', genres: [], tags: [], sourceLanguages: [], translationLanguages: [], status: [], shelves: [], sort: 'recently-added' };
       const navbarSearch = navbarContainer.querySelector<HTMLInputElement>('.navbar-search');
       if (navbarSearch) navbarSearch.value = '';
       if (window.location.hash.startsWith('#library?')) history.replaceState(null, '', '#library');
@@ -157,10 +177,18 @@ export async function renderLibraryPage(container: HTMLElement, initialSearch = 
         role: 'status',
       }));
     }
+    if (shelvesUnavailable) {
+      contentEl.appendChild(el('p', {
+        className: 'library-progress-notice',
+        text: 'Shelves are temporarily unavailable. Your library is still ready to browse.',
+        role: 'status',
+      }));
+    }
     const filtered = filterNovels();
 
     const noFilters = !filters.search && filters.genres.length === 0 && filters.tags.length === 0 &&
-      filters.sourceLanguages.length === 0 && filters.translationLanguages.length === 0 && filters.status.length === 0;
+      filters.sourceLanguages.length === 0 && filters.translationLanguages.length === 0 &&
+      filters.status.length === 0 && filters.shelves.length === 0;
 
     if (noFilters && progressList.length > 0) {
       const continueSection = el('div', { className: 'continue-section' });

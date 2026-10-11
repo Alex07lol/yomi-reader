@@ -10,6 +10,7 @@ import { clearNovelCache, fetchAllNovels } from '../data';
 import { volumeId } from '../lib/enhanced-models';
 import { renderNavbar, renderFooter } from '../components';
 import { router } from '../utils/router';
+import { normalizeSharedUrl, takeSharedContent } from '../lib/share-target';
 
 export async function renderAdminPage(container: HTMLElement): Promise<void> {
   empty(container);
@@ -23,6 +24,8 @@ export async function renderAdminPage(container: HTMLElement): Promise<void> {
 
   renderNavbar(navbarContainer, 'admin');
   renderFooter(footerContainer);
+
+  const sharedContent = takeSharedContent();
 
   let parsed: ParsedEpub | null = null;
   let coverOverride: string | null = null;
@@ -392,6 +395,27 @@ export async function renderAdminPage(container: HTMLElement): Promise<void> {
       importButton.textContent = 'Add to library';
     }
   });
+
+  if (sharedContent) {
+    const sharedLink = normalizeSharedUrl(sharedContent.url) ?? normalizeSharedUrl(sharedContent.text);
+    mainContainer.appendChild(el('section', { className: 'import-panel share-target-panel', 'aria-labelledby': 'share-target-heading' },
+      el('div', { className: 'import-section-heading' },
+        el('span', { className: 'step-number', text: '\u2197' }),
+        el('h2', { id: 'share-target-heading', text: 'Shared with Yomi' }),
+      ),
+      sharedContent.title ? el('p', { className: 'share-target-title', text: sharedContent.title }) : null,
+      sharedContent.text ? el('p', { className: 'share-target-text', text: sharedContent.text }) : null,
+      sharedContent.url ? el('p', { className: 'share-target-url', text: sharedContent.url }) : null,
+      sharedLink ? el('a', {
+        className: 'btn btn-secondary share-target-open',
+        href: sharedLink,
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        text: 'Open shared link',
+      }) : null,
+      el('p', { className: 'share-target-note', text: 'Yomi imports books from EPUB files. If you have this title as an EPUB, add it below and it stays on this device.' }),
+    ));
+  }
 
   mainContainer.appendChild(el('div', { className: 'admin-container import-page' },
     el('button', { className: 'import-back-link', type: 'button', onclick: () => router.navigate('library'), text: '← Library' }),

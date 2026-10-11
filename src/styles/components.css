@@ -998,6 +998,7 @@
 /* ── Reader ── */
 
 .reader-main {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -1164,7 +1165,7 @@
 }
 
 .chapter-block-content p {
-  margin-bottom: 1.2em;
+  margin-bottom: var(--reader-paragraph-spacing, 1.2em);
   text-indent: 0;
 }
 
@@ -1241,6 +1242,35 @@
   font-size: var(--font-size-sm);
   padding: var(--space-2);
   background: var(--bg-secondary);
+}
+
+.settings-reset-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-primary);
+}
+
+.settings-reset-button {
+  align-self: flex-start;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.settings-reset-button:hover { border-color: var(--accent); }
+.settings-reset-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.settings-reset-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
 }
 
 /* ── Quick Read Grid (Novel Page) ── */
@@ -1673,4 +1703,283 @@
   max-width: var(--max-width-content);
   margin: 0 auto;
   width: 100%;
+}
+/* ════════════════════════════════════════════════════════════════
+   Reader toolbar progress, in-reader search, offline install and the
+   novel-level progress summary.
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Persistent whole-book progress in the reader toolbar ── */
+
+.reader-novel-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.reader-novel-progress-track {
+  display: block;
+  position: relative;
+  width: 64px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.reader-novel-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  transition: width var(--transition);
+}
+
+.reader-novel-progress-label {
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  min-width: 3ch;
+  text-align: right;
+}
+
+.reader-search-icon svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+/* ── In-reader search panel ── */
+
+.reader-search-panel {
+  position: absolute;
+  top: 60px;
+  right: var(--space-4);
+  max-height: min(70vh, 520px);
+  z-index: 80;
+  width: min(360px, calc(100vw - 2 * var(--space-4)));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-lg, 0 12px 32px rgba(0, 0, 0, 0.35));
+}
+
+.reader-search-panel[hidden] { display: none; }
+
+.reader-search-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.reader-search-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.reader-search-input {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+}
+
+.reader-search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-muted);
+  outline: none;
+}
+
+.reader-search-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.reader-search-step { min-width: 32px; }
+.reader-search-step:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.reader-search-status {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.reader-search-results {
+  max-height: 44vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reader-search-results[hidden] { display: none; }
+
+.reader-search-result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.reader-search-result:hover { background: var(--bg-hover); }
+
+.reader-search-result-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.reader-search-result-chapter {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.reader-search-result-count {
+  flex: 0 0 auto;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.reader-search-result-snippet {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+  color: var(--text-secondary);
+}
+
+/* ── Search match highlights ── */
+
+mark.reader-search-hit {
+  background: var(--accent-muted, rgba(120, 160, 255, 0.35));
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+mark.reader-search-hit.is-active {
+  background: var(--accent);
+  color: var(--color-text-on-accent);
+}
+
+/* ── Whole-book progress summary on the novel page ── */
+
+.novel-progress-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+}
+
+.novel-progress-bar {
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.novel-progress-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+}
+
+.novel-progress-text {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.novel-progress-percent {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.novel-progress-sep { color: var(--text-tertiary); }
+
+/* ── Navbar "Install app" button ── */
+
+.navbar-install-button {
+  padding: var(--space-1-5) var(--space-3);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.navbar-install-button:hover { border-color: var(--accent); }
+
+/* ── Shared-with-Yomi panel on the Add-book page ── */
+
+.share-target-panel { display: grid; gap: var(--space-2); }
+
+.share-target-title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.share-target-text,
+.share-target-url {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+.share-target-url { color: var(--text-tertiary); }
+
+.share-target-open { justify-self: start; }
+
+.share-target-note {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 720px) {
+  .reader-novel-progress-track { width: 46px; }
+  .reader-novel-progress-label { font-size: 0.7rem; }
+  .reader-search-panel { right: var(--space-2); left: var(--space-2); width: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-novel-progress-fill,
+  .reader-search-result,
+  .navbar-install-button { transition: none; }
 }

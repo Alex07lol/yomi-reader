@@ -3,7 +3,7 @@
 import { el, empty } from '../utils/dom';
 import type { Novel, Chapter } from '../models';
 import { fetchNovel, fetchChapters } from '../data';
-import { getReadingProgress } from '../storage';
+import { getImportedNovel, getReadingProgress } from '../storage';
 import { Reader } from '../components/Reader';
 
 export async function renderReaderPage(
@@ -45,6 +45,13 @@ export async function renderReaderPage(
   page.appendChild(readerEl);
 
   const reader = new Reader(readerEl);
+
+  // Personal imports stay entirely local and never join the shared discussions.
+  try {
+    if (await getImportedNovel(novel.id)) reader.disableCommunity();
+  } catch {
+    reader.disableCommunity();
+  }
 
   let initialScrollY = 0;
   let initialChapterId = chapterId;

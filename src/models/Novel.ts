@@ -76,12 +76,30 @@ export interface UserSettings {
   lineHeight: number;           // unitless
   readingWidth: number;         // px (max-width of reader column)
   pageMargin: number;           // px
-  fontFamily: string;
+  fontFamily: string;           // 'serif' | 'sans' | 'mono'
+  textAlign: ReaderTextAlign;   // paragraph alignment
+  paragraphSpacing: number;     // em between paragraphs
+  letterSpacing: number;        // px
   infiniteScroll: boolean;
   readerLoadingStrategy: ReaderLoadingStrategy;
 }
 
+export type ReaderTextAlign = 'left' | 'justify';
+
 export type ReaderLoadingStrategy = 'balanced' | 'lightweight' | 'preload';
+
+/* ─── Reading shelves ─── */
+
+export type ShelfId = 'want' | 'reading' | 'finished';
+
+/** A novel's placement on one shelf. `updatedAt` drives last-write-wins sync. */
+export interface ReadingShelf {
+  novelId: string;
+  shelf: ShelfId;
+  updatedAt: number;            // unix ms
+  /** Local/remote tombstone: the novel was removed from every shelf. */
+  deleted?: boolean;
+}
 
 export type ThemeId = 'midnight' | 'dark' | 'light' | 'oled' | 'sepia' | 'system';
 
@@ -94,6 +112,7 @@ export interface LibraryFilters {
   sourceLanguages: string[];
   translationLanguages: string[];
   status: NovelStatus[];
+  shelves: ShelfId[];
   sort: SortOption;
 }
 

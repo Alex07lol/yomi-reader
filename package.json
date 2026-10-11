@@ -12,14 +12,21 @@
     "publisher:dev": "vite --config tools/publisher/vite.config.ts",
     "publisher:api": "node tools/publisher/server.mjs",
     "pages:deploy:preview": "wrangler pages deploy dist --project-name yomi-reader --branch preview",
-    "pages:deploy:production": "wrangler pages deploy dist --project-name yomi-reader"
+    "pages:deploy:production": "wrangler pages deploy dist --project-name yomi-reader",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:verify": "node tools/community-db-verify.mjs"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "jsdom": "^30.1.2",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
+    "vitest": "^3.2.7",
     "wrangler": "4.148.0"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.3",
     "jszip": "^3.10.2",
     "marked": "^18.1.0",
     "sanitize-html": "^2.18.0"

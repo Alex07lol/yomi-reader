@@ -1,0 +1,62 @@
+# Local Supabase configuration for Yomi Reader community features.
+# Used by the Supabase CLI for `supabase start` and `supabase test db`.
+# No credentials or secret values live in this file.
+
+project_id = "yomi-reader"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "2MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = [
+  "http://localhost:5173/**",
+  "https://your-project.pages.dev/**"
+]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+double_confirm_changes = true
+otp_length = 6
+
+[auth.email.template.confirmation]
+subject = "Confirm your Yomi Reader account"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your Yomi Reader password"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.invite]
+subject = "You have been invited to Yomi Reader"
+content_path = "./supabase/templates/invite.html"
+
+[analytics]
+enabled = false
+
+[db.pooler]
+enabled = false

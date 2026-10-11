@@ -2,8 +2,12 @@
 
 import { el } from '../utils/dom';
 import { router } from '../utils/router';
-import type { Novel, ReadingProgress } from '../models';
+import type { Novel, ReadingProgress, ShelfId } from '../models';
 import type { LibraryNovelAvailability } from '../data';
+import { SHELF_LABELS } from '../utils/shelves';
+import { novelProgressPercent } from '../lib/progress-stats';
+import { formatRating, getCachedNovelRating, roundedStars } from '../community';
+import type { NovelRating } from '../community';
 
 let connectivityListenerInstalled = false;
 
@@ -35,7 +39,7 @@ function installConnectivityListener(): void {
 }
 
 export function renderNovelCard(
-  novel: Novel & { libraryAvailability?: LibraryNovelAvailability },
+  novel: Novel & { libraryAvailability?: LibraryNovelAvailability; readingShelf?: ShelfId },
   progress?: ReadingProgress,
 ): HTMLElement {
   installConnectivityListener();
@@ -66,6 +70,10 @@ export function renderNovelCard(
         el('span', { className: 'novel-card-meta-item', text: `${novel.volumes.length} volumes` }),
         el('span', { className: 'novel-card-meta-item', text: `${novel.sourceLanguage} → ${novel.translationLanguage}` }),
       ),
+      novel.readingShelf
+        ? el('span', { className: `novel-card-shelf novel-card-shelf-${novel.readingShelf}`, text: SHELF_LABELS[novel.readingShelf] })
+        : null,
+      el('span', { className: 'novel-card-rating', hidden: true, 'aria-hidden': 'true' }),
       el('div', { className: 'novel-card-genres' },
         ...novel.genres.slice(0, 3).map(g => el('span', { className: 'novel-card-genre-tag', text: g })),
         novel.genres.length > 3 ? el('span', { className: 'novel-card-genre-tag', text: `+${novel.genres.length - 3}` }) : null,
@@ -73,13 +81,17 @@ export function renderNovelCard(
       progress
         ? el('div', { className: 'novel-card-progress' },
             el('div', { className: 'novel-card-progress-bar' },
-              el('div', { className: 'novel-card-progress-fill', style: `width: ${Math.round(progress.progress * 100)}%` }),
+              // Whole-book percent, not just the current chapter's fraction.
+              el('div', { className: 'novel-card-progress-fill', style: `width: ${novelProgressPercent(novel.chapters, progress)}%` }),
             ),
-            el('span', { className: 'novel-card-progress-text', text: `Ch. ${progress.globalChapterNumber}` }),
+            el('span', { className: 'novel-card-progress-text', text: `Ch. ${progress.globalChapterNumber} · ${novelProgressPercent(novel.chapters, progress)}%` }),
           )
         : null,
     ),
   );
+
+  card.dataset.novelId = novel.id;
+  applyNovelCardRating(card, getCachedNovelRating(novel.id));
 
   if (hasSharedAvailability) {
     card.dataset.libraryAvailability = novel.libraryAvailability;
@@ -100,4 +112,23 @@ export function renderNovelCard(
   });
 
   return card;
+}
+
+/** Fills a card's rating badge, or hides it when a novel has no reviews. */
+export function applyNovelCardRating(card: HTMLElement, rating: NovelRating | null): void {
+  const badge = card.querySelector<HTMLElement>('.novel-card-rating');
+  if (!badge) return;
+  if (!rating || rating.count === 0 || rating.average === null) {
+    badge.hidden = true;
+    badge.textContent = '';
+    return;
+  }
+  badge.hidden = false;
+  badge.textContent = '';
+  badge.setAttribute('aria-label', `Rated ${formatRating(rating.average)} out of 5 from ${rating.count} reviews`);
+  badge.append(
+    el('span', { className: 'novel-card-rating-stars', text: '★'.repeat(roundedStars(rating.average)) }),
+    el('span', { className: 'novel-card-rating-value', text: formatRating(rating.average) }),
+    el('span', { className: 'novel-card-rating-count', text: `(${rating.count})` }),
+  );
 }

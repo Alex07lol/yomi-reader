@@ -3,7 +3,7 @@
 import type { Chapter, Novel, ReadingProgress, UserSettings } from '../models';
 
 const DB_NAME = 'yomi-reader';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 export function openStorageDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -30,6 +30,9 @@ export function openStorageDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('offline_shared_chapters')) {
         const chapters = db.createObjectStore('offline_shared_chapters', { keyPath: 'id' });
         chapters.createIndex('novelId', 'novelId', { unique: false });
+      }
+      if (!db.objectStoreNames.contains('shelves')) {
+        db.createObjectStore('shelves', { keyPath: 'novelId' });
       }
     };
     req.onsuccess = () => {
@@ -195,6 +198,9 @@ const DEFAULT_SETTINGS: UserSettings = {
   readingWidth: 720,
   pageMargin: 24,
   fontFamily: 'serif',
+  textAlign: 'left',
+  paragraphSpacing: 1.2,
+  letterSpacing: 0,
   infiniteScroll: true,
   readerLoadingStrategy: 'balanced',
 };

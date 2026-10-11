@@ -1,7 +1,8 @@
 /* ─── Library Filters Component ─── */
 
 import { el, empty } from '../utils/dom';
-import type { LibraryFilters, SortOption, NovelStatus, LibraryOptions } from '../models';
+import type { LibraryFilters, SortOption, NovelStatus, LibraryOptions, ShelfId } from '../models';
+import { SHELF_IDS, SHELF_LABELS } from '../utils/shelves';
 import { renderSelectMenu } from './SelectMenu';
 
 export interface FilterCallbacks {
@@ -10,6 +11,7 @@ export interface FilterCallbacks {
   onToggleSourceLang: (l: string) => void;
   onToggleTransLang: (l: string) => void;
   onToggleStatus: (s: NovelStatus) => void;
+  onToggleShelf: (s: ShelfId) => void;
   onSortChange: (s: SortOption) => void;
   onClear: () => void;
 }
@@ -44,6 +46,24 @@ export function renderFilters(
     ], value => callbacks.onSortChange(value as SortOption), 'filter-sort-menu'),
   );
   wrapper.appendChild(sortRow);
+
+  // Shelves are local-first, so this group works with or without an account.
+  wrapper.appendChild(el('details', { className: 'filter-group filter-group-shelves', open: true },
+    el('summary', { className: 'filter-group-summary', text: 'Shelves' }),
+    el('div', { className: 'filter-group-options' },
+      ...SHELF_IDS.map((shelf: ShelfId) =>
+        el('label', { className: `filter-chip${filters.shelves.includes(shelf) ? ' active' : ''}` },
+          el('input', {
+            type: 'checkbox',
+            checked: filters.shelves.includes(shelf),
+            onchange: () => callbacks.onToggleShelf(shelf),
+            style: 'display:none',
+          }),
+          el('span', { text: SHELF_LABELS[shelf] }),
+        ),
+      ),
+    ),
+  ));
 
   const addFilterGroup = (label: string, items: string[], selected: string[], toggle: (v: string) => void) => {
     if (items.length === 0) return;

@@ -11,13 +11,17 @@
 
 import { el, empty, debounce, clamp } from '../utils/dom';
 import type { Novel, Chapter, ReadingProgress, UserSettings, ReaderLoadingStrategy } from '../models';
-import { saveReadingProgress, loadUserSettings, saveUserSettings } from '../storage';
+import { DEFAULT_SETTINGS, saveReadingProgress, loadUserSettings, saveUserSettings } from '../storage';
 import { fetchChapters } from '../data';
 import { applyTheme } from '../theme';
 import { ChapterDrawer } from './ChapterDrawer';
 import { renderSelectMenu } from './SelectMenu';
 import { router } from '../utils/router';
 import { sanitizeChapterHtml } from '../utils/sanitize-chapter-html.mjs';
+import { ChapterDiscussionHost } from './ChapterDiscussion';
+import { ReaderSearch } from './ReaderSearch';
+import { novelProgressPercent } from '../lib/progress-stats';
+import { getCommentCount } from '../community';
 
 export class Reader {
   private container: HTMLElement;
@@ -54,6 +58,15 @@ export class Reader {
   private isDestroyed = false;
   private controlsHideTimer: number | null = null;
 
+  // Chapter discussions are optional and independent from reading.
+  private discussions = new ChapterDiscussionHost();
+  private communityEnabled = true;
+  private commentsButton: HTMLButtonElement | null = null;
+  private search: ReaderSearch | null = null;
+  private novelProgressEl: HTMLElement | null = null;
+  private commentsCountRequest = 0;
+  private chapterCommentCounts = new Map<string, number>();
+
   // Mobile sidebar state (reserved for future drawer integration)
 
   constructor(container: HTMLElement) {
@@ -77,12 +90,21 @@ export class Reader {
     this.container.appendChild(this.mainEl);
   }
 
+  /** Personal imports never join the shared community space. */
+  disableCommunity(): void {
+    this.communityEnabled = false;
+  }
+
   /* ── Lifecycle ── */
 
   async load(novel: Novel, initialChapterId?: string, scrollY?: number): Promise<void> {
     if (this.isDestroyed) return;
     this.novel = novel;
     this.initialChapterId = initialChapterId ?? novel.chapters[0]?.id;
+    // Adopt the target chapter straight away: the IntersectionObserver refines
+    // this as the reader scrolls, but the toolbar indicator, mobile controls and
+    // comment count must be correct from the first frame.
+    this.currentChapterId = this.initialChapterId ?? null;
     this.initialScrollY = scrollY ?? 0;
     this.hasRestored = false;
     this.settings = await loadUserSettings();
@@ -90,6 +112,7 @@ export class Reader {
     this.chapters = await fetchChapters(novel.id);
     this.applySettings();
     this.renderToolbar();
+    this.setupSearch();
     this.renderMobileControls();
     this.loadInitialChapters();
     this.setupObserver();
@@ -101,6 +124,9 @@ export class Reader {
 
   destroy(): void {
     this.isDestroyed = true;
+    this.search?.dispose();
+    this.search = null;
+    this.discussions.disposeAll();
     this.observer?.disconnect();
     this.observer = null;
     if (this.animationFrame) cancelAnimationFrame(this.animationFrame);
@@ -143,9 +169,10 @@ export class Reader {
           break;
         case 'f':
         case 'F':
-          if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+          // Ctrl/Cmd+F and a bare "f" both open the in-reader search.
+          if (!e.altKey) {
             e.preventDefault();
-            this.focusSearch();
+            this.openSearch();
           }
           break;
       }
@@ -251,9 +278,44 @@ export class Reader {
     this.navigateToChapter(this.chapters[this.chapters.length - 1].id);
   }
 
-  private focusSearch(): void {
-    const indicator = document.getElementById('chapter-indicator');
-    if (indicator) indicator.focus();
+  private setupSearch(): void {
+    this.search?.dispose();
+    this.search = new ReaderSearch({
+      getChapters: () => this.chapters,
+      getCurrentChapterId: () => this.currentChapterId ?? this.initialChapterId ?? null,
+      getChapterContentElement: (chapterId) =>
+        this.loadedChapters.get(chapterId)?.querySelector<HTMLElement>('.chapter-block-content') ?? null,
+      navigateToChapter: (chapterId) => this.navigateToChapter(chapterId),
+    });
+    this.mainEl.appendChild(this.search.element);
+  }
+
+  private openSearch(): void {
+    if (!this.search) this.setupSearch();
+    this.search?.open();
+  }
+
+  /** How far into a chapter block the top of the viewport currently is. */
+  private computeVisibleFraction(block: HTMLElement): number {
+    const totalHeight = block.scrollHeight || block.getBoundingClientRect().height;
+    if (totalHeight <= 0) return 0;
+    const visibleStart = this.readerEl.getBoundingClientRect().top - block.getBoundingClientRect().top;
+    return clamp(visibleStart / totalHeight, 0, 0.99);
+  }
+
+  /** Updates the toolbar's whole-book progress indicator. */
+  private updateNovelProgress(): void {
+    if (!this.novelProgressEl || !this.novel) return;
+    const chapterId = this.currentChapterId ?? this.initialChapterId;
+    const block = chapterId ? this.loadedChapters.get(chapterId) : null;
+    const fraction = block ? this.computeVisibleFraction(block) : 0;
+    const percent = novelProgressPercent(this.chapters, chapterId ? { chapterId, progress: fraction } : null);
+    const fill = this.novelProgressEl.querySelector<HTMLElement>('.reader-novel-progress-fill');
+    const label = this.novelProgressEl.querySelector<HTMLElement>('.reader-novel-progress-label');
+    const track = this.novelProgressEl.querySelector<HTMLElement>('.reader-novel-progress-track');
+    if (fill) fill.style.width = `${percent}%`;
+    if (label) label.textContent = `${percent}%`;
+    if (track) track.setAttribute('aria-label', `${percent}% of ${this.novel.title} read`);
   }
 
   /* ── Rendering ── */
@@ -263,11 +325,41 @@ export class Reader {
 
     if (!this.novel) return;
 
+    // A persistent progress indicator: how far through the whole book this is,
+    // not just the loaded scroll window. It lives inside the toolbar's center
+    // pill so it stays visible in both the default and redesigned layouts.
+    const progress = el('div', { className: 'reader-novel-progress' },
+      el('span', {
+        className: 'reader-novel-progress-track',
+        'aria-hidden': 'true',
+        'aria-label': `0% of ${this.novel.title} read`,
+      }, el('span', { className: 'reader-novel-progress-fill' })),
+      el('span', { className: 'reader-novel-progress-label', text: '0%' }),
+    );
+    this.novelProgressEl = progress;
+
     const center = el('div', { className: 'toolbar-center' },
       el('span', { className: 'reader-novel-name', text: this.novel.title }),
+      progress,
     );
 
     const right = el('div', { className: 'toolbar-right' },
+      el('button', {
+        className: 'toolbar-btn reader-search-btn',
+        type: 'button',
+        'aria-label': 'Search this book',
+        onclick: () => this.openSearch(),
+      }, el('span', { className: 'reader-search-icon', 'aria-hidden': 'true', html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-3.6-3.6"/></svg>' })),
+      (this.communityEnabled && this.discussions.enabled) ? el('button', {
+        className: 'toolbar-btn reader-comments-btn',
+        type: 'button',
+        hidden: true,
+        'aria-label': 'Open chapter comments',
+        onclick: () => this.openComments(),
+      },
+        el('span', { className: 'reader-comments-icon', 'aria-hidden': 'true', text: '💬' }),
+        el('span', { className: 'reader-comments-count', 'aria-hidden': 'true' }),
+      ) as HTMLButtonElement : null,
       el('button', {
         className: 'toolbar-btn reader-home-btn',
         'aria-label': 'Go to library',
@@ -294,6 +386,9 @@ export class Reader {
 
     this.toolbarEl.appendChild(center);
     this.toolbarEl.appendChild(right);
+    this.commentsButton = this.toolbarEl.querySelector<HTMLButtonElement>('.reader-comments-btn');
+    void this.updateCommentsCount();
+    this.updateNovelProgress();
   }
 
   private renderSettings(): void {
@@ -371,7 +466,8 @@ export class Reader {
       el('label', { className: 'settings-label', text: 'Font' }),
       renderSelectMenu('Font family', s.fontFamily, [
         { value: 'serif', label: 'Serif (Georgia)' },
-        { value: 'sans', label: 'Sans-serif' },
+        { value: 'sans', label: 'Sans-serif (Inter)' },
+        { value: 'mono', label: 'Monospace' },
       ], value => {
           s.fontFamily = value;
           this.applyReaderStyles();
@@ -379,6 +475,60 @@ export class Reader {
         }, 'reader-select-menu'),
     );
     this.settingsPanel.appendChild(fontRow);
+
+    const alignRow = el('div', { className: 'settings-row' },
+      el('label', { className: 'settings-label', text: 'Text alignment' }),
+      renderSelectMenu('Text alignment', s.textAlign, [
+        { value: 'left', label: 'Left' },
+        { value: 'justify', label: 'Justified' },
+      ], value => {
+          s.textAlign = value === 'justify' ? 'justify' : 'left';
+          this.applyReaderStyles();
+          this.saveSettings();
+        }, 'reader-select-menu'),
+    );
+    this.settingsPanel.appendChild(alignRow);
+
+    this.settingsPanel.appendChild(createSlider('Paragraph spacing', Math.round(s.paragraphSpacing * 10), 6, 24, 1, '', (v) => {
+      s.paragraphSpacing = v / 10; this.applyReaderStyles(); this.saveSettings();
+    }));
+
+    this.settingsPanel.appendChild(createSlider('Letter spacing', Math.round(s.letterSpacing * 10), 0, 30, 1, '', (v) => {
+      s.letterSpacing = v / 10; this.applyReaderStyles(); this.saveSettings();
+    }));
+
+    this.settingsPanel.appendChild(el('div', { className: 'settings-row settings-reset-row' },
+      el('button', {
+        className: 'settings-reset-button',
+        type: 'button',
+        text: 'Reset reading style',
+        onclick: () => void this.resetReaderStyles(),
+      }),
+      el('span', {
+        className: 'settings-reset-hint',
+        text: 'Restores font, spacing and alignment defaults.',
+      }),
+    ));
+  }
+
+  /** Restores the typography defaults without touching theme or loading mode. */
+  private async resetReaderStyles(): Promise<void> {
+    if (!this.settings) return;
+    this.settings = {
+      ...this.settings,
+      fontSize: DEFAULT_SETTINGS.fontSize,
+      lineHeight: DEFAULT_SETTINGS.lineHeight,
+      readingWidth: DEFAULT_SETTINGS.readingWidth,
+      pageMargin: DEFAULT_SETTINGS.pageMargin,
+      fontFamily: DEFAULT_SETTINGS.fontFamily,
+      textAlign: DEFAULT_SETTINGS.textAlign,
+      paragraphSpacing: DEFAULT_SETTINGS.paragraphSpacing,
+      letterSpacing: DEFAULT_SETTINGS.letterSpacing,
+    };
+    this.applyReaderStyles();
+    await this.saveSettings();
+    this.renderSettings();
+    this.settingsPanel.classList.add('open');
   }
 
   private setupControlAutoHide(): void {
@@ -449,9 +599,14 @@ export class Reader {
     const s = this.settings;
     this.readerEl.style.setProperty('--reader-width', `${s.readingWidth}px`);
     this.readerEl.style.setProperty('--reader-padding', `${s.pageMargin}px`);
+    this.readerEl.style.setProperty('--reader-paragraph-spacing', `${s.paragraphSpacing}em`);
     this.contentEl.style.fontSize = `${s.fontSize}px`;
     this.contentEl.style.lineHeight = String(s.lineHeight);
-    this.contentEl.style.fontFamily = s.fontFamily === 'serif' ? 'var(--font-serif)' : 'var(--font-sans)';
+    this.contentEl.style.letterSpacing = `${s.letterSpacing}px`;
+    this.contentEl.style.textAlign = s.textAlign === 'justify' ? 'justify' : 'left';
+    this.contentEl.style.fontFamily = s.fontFamily === 'serif'
+      ? 'var(--font-serif)'
+      : s.fontFamily === 'mono' ? 'var(--font-mono, ui-monospace, monospace)' : 'var(--font-sans)';
   }
 
   private async saveSettings(): Promise<void> {
@@ -462,6 +617,9 @@ export class Reader {
   /* ── Chapter Loading ── */
 
   private loadInitialChapters(): void {
+    // Rebuilding the window removes every chapter block; dispose their
+    // discussion regions too so reopened chapters can mount again cleanly.
+    this.discussions.disposeAll();
     empty(this.contentEl);
     this.loadedChapters.clear();
 
@@ -492,6 +650,9 @@ export class Reader {
         this.hasRestored = true;
       }
       this.updateMobileControls();
+      this.updateNovelProgress();
+      this.search?.refresh();
+      void this.updateCommentsCount();
     });
   }
 
@@ -517,6 +678,7 @@ export class Reader {
 
     if (prepend) this.contentEl.insertBefore(block, this.contentEl.firstChild);
     else this.contentEl.appendChild(block);
+    if (this.communityEnabled) this.discussions.mount(chapter, block);
     this.loadedChapters.set(chapter.id, block);
 
     if (this.observer) {
@@ -525,6 +687,7 @@ export class Reader {
   }
 
   private removeChapter(chapterId: string): void {
+    this.discussions.dispose(chapterId);
     const block = this.loadedChapters.get(chapterId);
     if (block) {
       if (this.observer) this.observer.unobserve(block);
@@ -605,6 +768,8 @@ export class Reader {
             this.updateUrl(id);
             this.saveDebounced();
             this.loadNearbyChapters();
+            this.updateNovelProgress();
+            void this.updateCommentsCount();
           }
         }
       },
@@ -620,6 +785,7 @@ export class Reader {
       if (!ticking) {
         this.animationFrame = requestAnimationFrame(() => {
           this.updateProgressBar();
+          this.updateNovelProgress();
           ticking = false;
         });
         ticking = true;
@@ -652,13 +818,19 @@ export class Reader {
   navigateToChapter(chapterId: string): void {
     const block = this.loadedChapters.get(chapterId);
     if (block) {
+      this.currentChapterId = chapterId;
       block.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      this.updateNovelProgress();
+      this.updateMobileControls();
+      this.saveDebounced();
+      void this.updateCommentsCount();
       return;
     }
 
     const idx = this.chapters.findIndex(c => c.id === chapterId);
     if (idx >= 0) {
       this.initialChapterId = chapterId;
+      this.currentChapterId = chapterId;
       this.initialScrollY = 0;
       this.hasRestored = false;
       this.observer?.disconnect();
@@ -681,15 +853,7 @@ export class Reader {
     let scrollPosition = 0;
 
     if (block) {
-      const blockRect = block.getBoundingClientRect();
-      const readerRect = this.readerEl.getBoundingClientRect();
-      const totalHeight = block.scrollHeight;
-      const visibleStart = readerRect.top - blockRect.top;
-
-      if (totalHeight > 0) {
-        progress = clamp(visibleStart / totalHeight, 0, 0.99);
-      }
-
+      progress = this.computeVisibleFraction(block);
       const contentScroll = this.readerEl.scrollTop - block.offsetTop;
       scrollPosition = Math.max(0, contentScroll);
     }
@@ -707,6 +871,54 @@ export class Reader {
 
     this.currentProgress = readingProgress;
     await saveReadingProgress(readingProgress);
+  }
+
+  /* ── Chapter discussions ── */
+
+  private openComments(): void {
+    const chapterId = this.currentChapterId ?? this.initialChapterId;
+    if (!chapterId) return;
+    this.discussions.open(chapterId);
+  }
+
+  private async updateCommentsCount(): Promise<void> {
+    const button = this.commentsButton;
+    if (!button || !this.communityEnabled || !this.discussions.enabled || !this.novel) {
+      if (button) button.hidden = true;
+      return;
+    }
+    const chapterId = this.currentChapterId;
+    const cacheKey = chapterId ?? '';
+    if (!chapterId) {
+      button.hidden = true;
+      return;
+    }
+    button.hidden = false;
+
+    const cached = this.chapterCommentCounts.get(cacheKey);
+    if (cached !== undefined) {
+      this.renderCommentsCount(cached);
+      return;
+    }
+
+    const request = ++this.commentsCountRequest;
+    try {
+      const count = await getCommentCount({ novelId: this.novel.id, chapterId });
+      this.chapterCommentCounts.set(cacheKey, count);
+      if (request !== this.commentsCountRequest) return;
+      this.renderCommentsCount(count);
+    } catch {
+      // Community counts are optional; the button still opens the thread.
+    }
+  }
+
+  private renderCommentsCount(count: number): void {
+    const button = this.commentsButton;
+    if (!button) return;
+    button.hidden = false;
+    const badge = button.querySelector('.reader-comments-count');
+    if (badge) badge.textContent = count > 0 ? String(count) : '';
+    button.setAttribute('aria-label', count > 0 ? `Open chapter comments (${count})` : 'Open chapter comments');
   }
 
   public async getCurrentProgress(): Promise<ReadingProgress | null> {

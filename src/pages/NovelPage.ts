@@ -6,7 +6,9 @@ import type { Novel, Chapter } from '../models';
 import { fetchNovel, fetchChapters } from '../data';
 import { getImportedNovel, getReadingProgress } from '../storage';
 import { isSharedNovelSaved, removeSharedNovelOffline, saveSharedNovelOffline } from '../storage/offline-books';
-import { renderNavbar, renderFooter, renderNovelHeader, renderVolumeList, renderDownloadPanel } from '../components';
+import { renderNavbar, renderFooter, renderNovelHeader, renderVolumeList, renderDownloadPanel, DiscussionPanel, ShelfPicker } from '../components';
+import { offlineResourceUrls, precacheOfflineNovel, removeOfflineNovelCache } from '../lib/offline-sw';
+import { formatReadingRemaining, novelProgressPercent, remainingReading } from '../lib/progress-stats';
 
 function sharedAssetUrl(path: string): URL {
   if (/^(?:data:|blob:|https?:)/i.test(path)) return new URL(path);
@@ -110,6 +112,31 @@ export async function renderNovelPage(container: HTMLElement, novelId: string): 
   mainContainer.appendChild(headerContainer);
   renderNovelHeader(headerContainer, novel, progress);
 
+  // A whole-book progress summary: percent complete plus a rough time to finish.
+  if (progress) {
+    const percent = novelProgressPercent(novel.chapters, progress);
+    const remaining = remainingReading(novel.chapters, progress);
+    mainContainer.appendChild(el('section', { className: 'novel-progress-summary', 'aria-label': 'Your reading progress' },
+      el('div', { className: 'novel-progress-bar', 'aria-hidden': 'true' },
+        el('div', { className: 'novel-progress-fill', style: `width: ${percent}%` }),
+      ),
+      el('p', { className: 'novel-progress-text' },
+        el('span', { className: 'novel-progress-percent', text: `${percent}% complete` }),
+        el('span', { className: 'novel-progress-sep', 'aria-hidden': 'true', text: '·' }),
+        el('span', { className: 'novel-progress-time', text: formatReadingRemaining(remaining) }),
+      ),
+    ));
+  }
+
+  // Reading shelves are available for every shared title, signed in or not.
+  if (!isPersonalNovel) {
+    const shelfHost = headerContainer.querySelector<HTMLElement>('.novel-header-actions');
+    if (shelfHost) {
+      const picker = new ShelfPicker({ novelId: novel.id });
+      shelfHost.appendChild(picker.element);
+    }
+  }
+
   if (!isPersonalNovel) {
     const actions = headerContainer.querySelector<HTMLElement>('.novel-header-actions');
     if (actions) {
@@ -143,6 +170,7 @@ export async function renderNovelPage(container: HTMLElement, novelId: string): 
         try {
           if (isSaved) {
             await removeSharedNovelOffline(novel.id);
+            void removeOfflineNovelCache(novel.id);
             isSaved = false;
             status.textContent = 'Offline copy removed.';
           } else {
@@ -151,6 +179,9 @@ export async function renderNovelPage(container: HTMLElement, novelId: string): 
               fetchSharedCoverDataUrl(novel.cover),
             ]);
             await saveSharedNovelOffline({ ...novel, cover }, sharedChapters);
+            // Also keep the chapter JSON and cover in the service-worker cache so
+            // a reload while offline is served at the network layer too.
+            void precacheOfflineNovel(novel.id, offlineResourceUrls({ id: novel.id, cover: novel.cover }));
             isSaved = true;
             status.textContent = 'Available offline.';
           }
@@ -172,6 +203,21 @@ export async function renderNovelPage(container: HTMLElement, novelId: string): 
       }
       updateButton();
     }
+  }
+
+  // Community discussion — kept visually separate from the novel description
+  // and chapter text. Personal imports never join the shared discussion space.
+  if (!isPersonalNovel) {
+    const discussionSection = el('section', { className: 'novel-discussion-section', 'aria-label': 'Novel discussion' });
+    mainContainer.appendChild(discussionSection);
+    const scope = { novelId: novel.id, chapterId: null };
+    const discussionPanel = new DiscussionPanel({
+      scope,
+      title: 'Discussion',
+      allowReviews: true,
+      startOpen: true,
+    });
+    discussionSection.appendChild(discussionPanel.element);
   }
 
   // Layout: sidebar (volumes) + content

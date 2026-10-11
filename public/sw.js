@@ -9,6 +9,13 @@ const OFFLINE_URL = '/offline.html';
 const MANIFEST_URL = '/manifest.webmanifest';
 const ICON_URLS = ['/favicon.svg', '/icons.svg'];
 const NOVELS_URL = '/data/novels.json';
+/* Explicitly saved books keep their chapter JSON and covers in a cache that is
+   independent of the versioned app shell, so an app-shell update never drops
+   downloaded reading. */
+const OFFLINE_CACHE = 'yomi-offline:v1';
+const CHAPTERS_PATH = '/data/chapters/';
+const COVERS_PATH = '/covers/';
+const MAX_OFFLINE_RESOURCE_BYTES = 8_000_000;
 const MAX_HTML_BYTES = 1_000_000;
 const MAX_SCRIPT_BYTES = 20_000_000;
 const MAX_STYLE_BYTES = 5_000_000;
@@ -251,6 +258,84 @@ async function navigationFallback(request) {
   });
 }
 
+function isOfflineResource(url) {
+  return url.origin === self.location.origin
+    && (url.pathname.startsWith(CHAPTERS_PATH) || url.pathname.startsWith(COVERS_PATH));
+}
+
+/* Chapters are network-first so shared text can update; covers are read from the
+   cache first because they rarely change. Only explicitly saved books populate
+   `yomi-offline:` (through the message API below), so browsing online never grows
+   this cache on its own; both paths fall back to it when the network is unavailable. */
+async function offlineResource(request, preferCache) {
+  const cache = await caches.open(OFFLINE_CACHE);
+  if (preferCache) {
+    const hit = await cache.match(request);
+    if (hit) return hit;
+  }
+  try {
+    return await fetch(request);
+  } catch {
+    return (await cache.match(request)) || (await cachedShellResponse(request)) || Response.error();
+  }
+}
+
+async function cacheOfflineNovel(urls) {
+  const cache = await caches.open(OFFLINE_CACHE);
+  let cached = 0;
+  for (const raw of urls) {
+    try {
+      const url = new URL(raw, self.location.origin);
+      if (!isOfflineResource(url)) continue;
+      const response = await fetch(url.href, { cache: 'reload', credentials: 'same-origin' });
+      if (!response.ok || response.status !== 200) continue;
+      const declaredLength = Number(response.headers.get('content-length') || 0);
+      if (declaredLength > MAX_OFFLINE_RESOURCE_BYTES) continue;
+      const body = await response.arrayBuffer();
+      if (body.byteLength > MAX_OFFLINE_RESOURCE_BYTES) continue;
+      await cache.put(url.href, new Response(body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: safeHeaders(response.headers),
+      }));
+      cached += 1;
+    } catch {
+      // A single unavailable resource must not fail the whole download.
+    }
+  }
+  return cached;
+}
+
+async function removeOfflineNovel(novelId) {
+  if (!novelId) return false;
+  const cache = await caches.open(OFFLINE_CACHE);
+  const keys = await cache.keys();
+  const needle = encodeURIComponent(novelId);
+  let removed = false;
+  for (const request of keys) {
+    if (request.url.includes(needle)) {
+      await cache.delete(request);
+      removed = true;
+    }
+  }
+  return removed;
+}
+
+self.addEventListener('message', event => {
+  const data = event.data;
+  if (!data || typeof data !== 'object') return;
+  const replyPort = event.ports && event.ports[0];
+  const reply = value => { if (replyPort) replyPort.postMessage(value); };
+
+  if (data.type === 'yomi-cache-offline' && Array.isArray(data.urls)) {
+    event.waitUntil(cacheOfflineNovel(data.urls).then(cached => reply({ ok: true, cached })));
+    return;
+  }
+  if (data.type === 'yomi-remove-offline') {
+    event.waitUntil(removeOfflineNovel(data.novelId).then(ok => reply({ ok })));
+  }
+});
+
 self.addEventListener('fetch', event => {
   const request = event.request;
   const url = new URL(request.url);
@@ -266,6 +351,10 @@ self.addEventListener('fetch', event => {
   }
   if ([MANIFEST_URL, OFFLINE_URL, ...ICON_URLS].includes(url.pathname)) {
     event.respondWith((async () => (await cachedShellResponse(request)) || fetch(request))());
+    return;
+  }
+  if (isOfflineResource(url)) {
+    event.respondWith(offlineResource(request, url.pathname.startsWith(COVERS_PATH)));
     return;
   }
   if (isHashedBuildAsset(url)) {

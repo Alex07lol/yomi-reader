@@ -1,0 +1,266 @@
+/* ════════════════════════════════════════════════════════════════
+   Mobile & touch enhancements
+   Loaded last so it can refine the desktop redesign on phones and
+   notched devices without changing desktop behaviour.
+   ════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Resolved from the safe-area insets so padding maths stays readable. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  /* Minimum comfortable touch target. */
+  --tap-target: 44px;
+}
+
+html {
+  /* Keep text the size the reader asked for when a phone is rotated. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  /* A stray wide child must never let the whole page pan sideways.
+     `clip` (not `hidden`) avoids turning <body> into a scroll container, which
+     would break the sticky navbar. */
+  overflow-x: clip;
+}
+
+/* Dynamic viewport units keep the reader correct under mobile browser chrome. */
+.reader-main,
+.page-reader,
+.page {
+  min-height: 100dvh;
+}
+
+.reader-main { height: 100dvh; }
+
+/* ── Safe-area aware chrome ── */
+
+.navbar {
+  height: calc(68px + var(--safe-top));
+  padding-top: var(--safe-top);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+
+.reader-toolbar {
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+
+.toolbar-center { top: calc(14px + var(--safe-top)); }
+
+.toolbar-right {
+  right: calc(16px + var(--safe-right));
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 32px);
+  overflow-y: auto;
+}
+
+.reader-content {
+  padding-top: calc(76px + var(--safe-top));
+  padding-bottom: calc(94px + var(--safe-bottom));
+  padding-left: calc(var(--reader-padding) + var(--safe-left));
+  padding-right: calc(var(--reader-padding) + var(--safe-right));
+  /* Contain overscroll so a swipe does not trigger a page-level refresh. */
+  overscroll-behavior-y: contain;
+}
+
+.reader-mobile-controls {
+  bottom: calc(14px + var(--safe-bottom));
+  padding-bottom: 0;
+}
+
+.reader-settings-panel {
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 40px);
+}
+
+.site-footer {
+  padding-bottom: calc(var(--space-6, 32px) + var(--safe-bottom));
+}
+
+.library-layout,
+.novel-page-layout,
+.novel-page-header {
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+
+.novel-page-layout { padding-bottom: calc(40px + var(--safe-bottom)); }
+
+/* ── Navbar install button ── */
+
+.navbar-install-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.navbar-install-icon { font-size: 15px; line-height: 1; }
+
+/* ── Touch ergonomics ── */
+
+@media (pointer: coarse) {
+  /* Remove the 300 ms double-tap-zoom delay and the grey tap flash. */
+  button,
+  a,
+  select,
+  input,
+  textarea,
+  summary,
+  [role='button'] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .toolbar-btn,
+  .community-notification-button,
+  .community-account-button,
+  .community-account-signin,
+  .community-account-register,
+  .chapter-discussion-toggle,
+  .chapter-list-btn,
+  .shelf-picker-button,
+  .mobile-btn,
+  .community-button {
+    min-height: var(--tap-target);
+  }
+
+  .toolbar-right .toolbar-btn {
+    width: var(--tap-target);
+    height: var(--tap-target);
+  }
+
+  .community-action { min-height: var(--tap-target); }
+
+  /* Hover styles can stick on touch screens; only apply them where hover exists. */
+  .novel-card:hover,
+  .continue-reading-item:hover,
+  .community-notification-item:hover,
+  .reader-search-result:hover {
+    transform: none;
+  }
+}
+
+@media (hover: none) {
+  .novel-card:hover { transform: none; box-shadow: none; }
+  .navbar-add-book:hover { transform: none; }
+}
+
+/* ── Phones: sheets instead of floating panels ── */
+
+@media (max-width: 768px) {
+  .toolbar-center {
+    max-width: calc(100vw - 2 * (56px + var(--safe-right)));
+    padding: 7px 13px;
+  }
+
+  .toolbar-right {
+    top: auto;
+    bottom: calc(78px + var(--safe-bottom));
+    right: calc(10px + var(--safe-right));
+    transform: none;
+    flex-direction: row;
+    border-radius: 999px;
+  }
+
+  .reader-main.reader-controls-hidden .toolbar-right { transform: translateX(8px); }
+
+  /* Search, reader settings and notifications become full-width bottom sheets. */
+  .reader-search-panel {
+    position: fixed;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-height: min(78dvh, 640px);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding-bottom: calc(var(--space-3) + var(--safe-bottom));
+  }
+
+  .reader-search-results { max-height: 46dvh; }
+
+  .reader-settings-panel {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: auto;
+    max-height: min(82dvh, 680px);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding-top: calc(var(--space-5) + 6px);
+    padding-bottom: calc(var(--space-3) + var(--safe-bottom));
+    transform: translateY(110%);
+  }
+
+  .reader-settings-panel.open { transform: translateY(0); }
+
+  .community-notification-panel {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: auto;
+    max-height: min(80dvh, 640px);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding-bottom: calc(var(--space-2) + var(--safe-bottom));
+  }
+
+  .community-account-menu {
+    max-width: calc(100vw - 2 * var(--space-4));
+  }
+}
+
+/* ── Bottom-sheet affordances ── */
+
+@media (max-width: 768px) {
+  .reader-search-panel,
+  .reader-settings-panel,
+  .community-notification-panel {
+    /* A scroll inside the sheet must not chain to the chapter behind it. */
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Visual grab affordance: these panels are dismissed by scrolling/tapping away. */
+  .reader-search-panel::before,
+  .reader-settings-panel::before,
+  .community-notification-panel::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    width: 38px;
+    height: 4px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: var(--border-primary);
+    pointer-events: none;
+  }
+
+  .community-notification-panel::before { position: sticky; margin: 0 auto 6px; }
+}
+
+@media (max-width: 480px) {
+  .reader-search-panel,
+  .reader-settings-panel { max-height: 86dvh; }
+  /* Keep the install affordance (it matters most on phones) but show only its icon. */
+  .navbar-install-label { display: none; }
+  .navbar-install-button { padding-inline: 8px; }
+}
+
+/* Coarse pointers on tablets also benefit from the taller targets above. */
+@media (min-width: 769px) and (pointer: coarse) {
+  .toolbar-right .toolbar-btn { width: var(--tap-target); height: var(--tap-target); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-settings-panel,
+  .reader-search-panel,
+  .community-notification-panel { transition: none; }
+}

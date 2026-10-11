@@ -3,6 +3,7 @@
 import { el, empty, pluralize } from '../utils/dom';
 import type { Novel, ReadingProgress } from '../models';
 import { router } from '../utils/router';
+import { formatRating, getNovelRating, roundedStars } from '../community';
 
 export function renderNovelHeader(
   container: HTMLElement,
@@ -12,6 +13,8 @@ export function renderNovelHeader(
   empty(container);
 
   const header = el('header', { className: 'novel-header' });
+
+  const ratingHost = el('div', { className: 'novel-header-rating', role: 'status', 'aria-live': 'polite' });
 
   const infoRow = el('div', { className: 'novel-header-row' },
     el('div', { className: 'novel-header-cover' },
@@ -31,6 +34,7 @@ export function renderNovelHeader(
         className: `novel-header-status status-${novel.status}`,
         text: novel.status.charAt(0).toUpperCase() + novel.status.slice(1),
       }),
+      ratingHost,
     ),
   );
   header.appendChild(infoRow);
@@ -105,6 +109,29 @@ export function renderNovelHeader(
 
   header.appendChild(actions);
   container.appendChild(header);
+
+  void fillRating(ratingHost, novel.id);
+}
+
+/** Fills the header rating summary once aggregation resolves. */
+async function fillRating(host: HTMLElement, novelId: string): Promise<void> {
+  const rating = await getNovelRating(novelId);
+  empty(host);
+  if (rating.count === 0 || rating.average === null) {
+    host.appendChild(el('span', { className: 'novel-header-rating-empty', text: 'No reviews yet' }));
+    return;
+  }
+  host.appendChild(el('span', {
+    className: 'novel-header-rating-stars',
+    'aria-hidden': 'true',
+    text: '★'.repeat(roundedStars(rating.average)) + '☆'.repeat(5 - roundedStars(rating.average)),
+  }));
+  host.appendChild(el('span', { className: 'novel-header-rating-value', text: formatRating(rating.average) }));
+  host.appendChild(el('span', {
+    className: 'novel-header-rating-count',
+    text: `· ${rating.count} ${rating.count === 1 ? 'review' : 'reviews'}`,
+  }));
+  host.setAttribute('aria-label', `Rated ${formatRating(rating.average)} out of 5 from ${rating.count} reviews`);
 }
 
 function resolveDownloadUrl(path: string): string {
