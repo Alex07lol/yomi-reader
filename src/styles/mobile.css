@@ -209,19 +209,6 @@ body {
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     padding-bottom: calc(var(--space-2) + var(--safe-bottom));
   }
-
-  /* The top-right menu opens as a sheet on phones, like the other panels. */
-  .top-menu-panel {
-    position: fixed;
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: auto;
-    max-height: min(80dvh, 640px);
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    padding-bottom: calc(var(--space-2) + var(--safe-bottom));
-  }
 }
 
 /* ── Bottom-sheet affordances ── */
@@ -229,8 +216,7 @@ body {
 @media (max-width: 768px) {
   .reader-search-panel,
   .reader-settings-panel,
-  .community-notification-panel,
-  .top-menu-panel {
+  .community-notification-panel {
     /* A scroll inside the sheet must not chain to the chapter behind it. */
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;

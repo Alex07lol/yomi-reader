@@ -163,15 +163,19 @@
 
 .top-menu-panel {
   position: absolute;
-  top: calc(100% + 8px);
+  /* Always a dropdown hanging below the trigger. Pinning it to the bottom of the
+     viewport makes it read as opening upwards, so the anchors are explicit. */
+  top: calc(100% + 6px);
+  bottom: auto;
   right: 0;
+  left: auto;
   z-index: var(--z-index-drawer);
-  width: 248px;
-  max-height: min(72dvh, 560px);
+  width: min(208px, calc(100vw - 2 * var(--space-4)));
+  max-height: min(70dvh, 440px);
   overflow-y: auto;
-  padding: var(--space-2);
+  padding: var(--space-1);
   border: 1px solid var(--border-primary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--bg-secondary);
   box-shadow: var(--shadow-lg);
   overscroll-behavior: contain;
@@ -180,44 +184,45 @@
 .top-menu-section {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  margin: var(--space-2) var(--space-2) var(--space-1);
+  gap: 6px;
+  margin: var(--space-2) 6px 2px;
   color: var(--text-tertiary);
-  font-size: var(--font-size-xs);
+  font-size: 0.66rem;
   font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.top-menu-section-icon { width: 14px; height: 14px; flex: none; }
+.top-menu-section:first-child { margin-top: 2px; }
+.top-menu-section-icon { width: 12px; height: 12px; flex: none; }
 
-.top-menu-group { display: flex; flex-direction: column; gap: 1px; padding-bottom: var(--space-1); }
+.top-menu-group { display: flex; flex-direction: column; gap: 1px; padding-bottom: 2px; }
 
 .top-menu-item {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   width: 100%;
-  padding: 8px 10px;
+  padding: 5px 6px;
   border: 0;
   border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-primary);
   font: inherit;
-  font-size: var(--font-size-sm);
+  font-size: 0.8rem;
   text-align: left;
   cursor: pointer;
 }
 .top-menu-item:hover { background: var(--bg-hover); }
 .top-menu-item.is-active { color: var(--accent); }
-.top-menu-icon, .top-menu-icon-slot, .top-menu-check { width: 16px; height: 16px; flex: none; }
+.top-menu-icon, .top-menu-icon-slot, .top-menu-check { width: 15px; height: 15px; flex: none; }
 .top-menu-item-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .top-menu-header {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2);
-  margin-bottom: var(--space-1);
+  gap: var(--space-2);
+  padding: var(--space-1) 6px var(--space-2);
+  margin-bottom: 2px;
   border-bottom: 1px solid var(--border-primary);
 }
 .top-menu-identity { min-width: 0; }
@@ -225,16 +230,16 @@
   margin: 0;
   overflow: hidden;
   color: var(--text-primary);
-  font-size: var(--font-size-sm);
+  font-size: 0.8rem;
   font-weight: var(--font-weight-semibold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.top-menu-since { margin: 2px 0 0; color: var(--text-tertiary); font-size: var(--font-size-xs); }
+.top-menu-since { margin: 2px 0 0; color: var(--text-tertiary); font-size: 0.66rem; }
 .top-menu-note {
-  margin: var(--space-1) var(--space-2) var(--space-2);
+  margin: var(--space-1) 6px;
   color: var(--text-tertiary);
-  font-size: var(--font-size-xs);
+  font-size: 0.68rem;
   line-height: var(--line-height-relaxed);
 }
 

@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import communityCss from './styles/community.css?raw';
 import componentsCss from './styles/components.css?raw';
+import mobileCss from './styles/mobile.css?raw';
 import styleCss from './style.css?raw';
 import filtersSource from './components/LibraryFilters.ts?raw';
 import libraryPageSource from './pages/LibraryPage.ts?raw';
@@ -75,10 +76,22 @@ describe('top-right menu', () => {
     expect(topMenuSource).toContain("'aria-label': 'Account, appearance and bookmarks'");
   });
 
-  it('is styled, including the active theme row', () => {
+  it('is styled as a compact dropdown, including the active theme row', () => {
     expect(rule(communityCss, '.top-menu-trigger')).not.toBe('');
-    expect(rule(communityCss, '.top-menu-panel')).toMatch(/position:\s*absolute/);
     expect(rule(communityCss, '.top-menu-item.is-active')).toMatch(/color:/);
+
+    const panel = rule(communityCss, '.top-menu-panel');
+    expect(panel).toMatch(/position:\s*absolute/);
+    expect(panel).toMatch(/width:\s*min\(208px/);
+  });
+
+  it('hangs below its trigger rather than upward from the bottom of the screen', () => {
+    // The reported bug: a width-scoped rule pinned it to the viewport bottom, which
+    // reads as the menu opening upwards.
+    const panel = rule(communityCss, '.top-menu-panel');
+    expect(panel).toMatch(/top:\s*calc\(100% \+ 6px\)/);
+    expect(panel).toMatch(/bottom:\s*auto/);
+    expect(mobileCss).not.toContain('.top-menu-panel');
   });
 
   it('opens as a sheet on phones, and leaves no dead theme/account CSS behind', () => {
